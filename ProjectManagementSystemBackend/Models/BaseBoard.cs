@@ -1,6 +1,6 @@
 ﻿namespace ProjectManagementSystemBackend.Models
 {
-    public class BoardBase
+    public class BaseBoard
     {
         public int Id {  get; set; }
         public string Name { get; set; }

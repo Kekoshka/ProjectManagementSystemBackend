@@ -4,6 +4,6 @@
     {
         public int Id { get; set; }
         public DateTime TimeLimit { get; set; }
-        public int BoardBaseId { get; set; }
+        public int BaseBoardId { get; set; }
     }
 }
