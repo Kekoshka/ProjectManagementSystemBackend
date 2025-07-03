@@ -18,7 +18,7 @@ namespace ProjectManagementSystemBackend.Context
         public DbSet<Role> Roles { get; set; }
         public DbSet<ScrumBoard> ScrumBoards { get; set; }
         public DbSet<Status> Statuses { get; set; }
-        public DbSet<Task> Tasks { get; set; }
+        public DbSet<Models.Task> Tasks { get; set; }
         public DbSet<TaskHistory> TaskHistories { get; set; }
         public DbSet<User> Users { get; set; }
     }
