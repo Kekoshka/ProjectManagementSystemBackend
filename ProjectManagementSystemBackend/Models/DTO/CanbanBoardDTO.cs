@@ -1,9 +1,9 @@
-﻿namespace ProjectManagementSystemBackend.Models
+﻿namespace ProjectManagementSystemBackend.Models.DTO
 {
-    public class ScrumBoard
+    public class CanbanBoardDTO
     {
         public int Id { get; set; }
-        public DateTime TimeLimit { get; set; }
+        public int TaskLimit { get; set; }
         public int BaseBoardId { get; set; }
         public BaseBoard BaseBoard { get; set; }
     }

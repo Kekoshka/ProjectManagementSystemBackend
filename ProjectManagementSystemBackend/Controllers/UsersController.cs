@@ -24,7 +24,7 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         [Authorize]
-        [HttpPost]
+        [HttpPost("authorization")]
         public async Task<IActionResult> Authorization(AuthData authData)
         {
             string hashedPassword = _passwordHasherService.Hash(authData.Password);
@@ -34,14 +34,14 @@ namespace ProjectManagementSystemBackend.Controllers
             var jwt = _authenticationService.GetJWT(user);
             return Ok(jwt);
         }
-        [HttpPost]
+        [HttpPost("registration")]
         public async Task<IActionResult> Registration(User user)
         {
             var existingUser = _context.Users.FirstOrDefaultAsync(u => u.Login == user.Login);
             if (existingUser is not null)
                 return Conflict("user with such data is already exists");
 
-            var newUser = new User
+            User newUser = new()
             {
                 Login = user.Login,
                 Name = user.Name,
@@ -50,7 +50,7 @@ namespace ProjectManagementSystemBackend.Controllers
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
             
-            return Ok();
+            return NoContent();
         }
     }
 }

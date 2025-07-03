@@ -8,5 +8,8 @@
         public int ParticipantId { get; set; }
         public int TaskId { get; set; }
         public int ActionTypeId { get; set; }
+        public Participant Participant { get; set; }
+        public Task Task { get; set; }
+        public ActionType ActionType { get; set; }
     }
 }
