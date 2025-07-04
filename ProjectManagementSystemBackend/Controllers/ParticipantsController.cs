@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
+using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Security.Claims;
 
@@ -49,6 +50,67 @@ namespace ProjectManagementSystemBackend.Controllers
                 .ToListAsync();
             return Ok(participants);
         }
+        [HttpPost]
+        public async Task<IActionResult> Post(ParticipantDTO participant)
+        {
+            var availableProject = _context.Projects
+                .Include(p => p.Participants)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == participant.ProjectId &&
+                    p.Participants.Any(p => p.UserId == _userId && p.RoleId == 1));
+            if (availableProject is null)
+                return Unauthorized("You havent access to this action");
+            
+            Participant newParticipant = new()
+            {
+                UserId = participant.UserId,
+                ProjectId = participant.ProjectId,
+                RoleId = participant.RoleId
+            };
+            _context.Participants.Add(newParticipant);
+            await _context.SaveChangesAsync();
 
+            return Ok(newParticipant);
+        }
+        [HttpPut]
+        public async Task<IActionResult> Update(ParticipantDTO newParticipant)
+        {
+            var availableProject = _context.Projects
+                .Include(p => p.Participants)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == newParticipant.ProjectId &&
+                    p.Participants.Any(p => p.UserId == _userId && p.RoleId == 1));
+            if (availableProject is null)
+                return Unauthorized("You havent access to this action");
+
+            var participant = await _context.Participants.FindAsync(newParticipant.Id);
+            if (participant is null)
+                return NotFound($"Participant with id {newParticipant.Id} id not found");
+
+            participant.RoleId = newParticipant.RoleId;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+        [HttpDelete]
+        public async Task<IActionResult> Delete(int participantId)
+        {
+            var availableProject = await _context.Projects
+                .Include(p => p.Participants)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Participants.Any(p => p.Id == participantId)
+                    && p.Participants.Any(p => p.UserId == _userId && p.RoleId == 1));
+            if (availableProject is null)
+                return Unauthorized("You havent access to this action");
+
+            var participant = await _context.Participants
+                .FirstOrDefaultAsync(p => p.Id == participantId);
+            if (participant is null)
+                return NotFound();
+
+            _context.Participants.Remove(participant);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
     }
 }
