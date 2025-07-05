@@ -33,12 +33,5 @@ namespace ProjectManagementSystemBackend.Services
            
             return new JwtSecurityTokenHandler().WriteToken(jwt);
         }
-
-
-
-
     }
-
-
-}
 }

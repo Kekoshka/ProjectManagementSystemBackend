@@ -38,6 +38,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasherService>();
 builder.Services.AddSingleton<IAuthentication, ProjectManagementSystemBackend.Services.AuthenticationService>();
+builder.Services.AddSingleton<ITaskHistory, TaskHistoryService>();
 
 var app = builder.Build();
 

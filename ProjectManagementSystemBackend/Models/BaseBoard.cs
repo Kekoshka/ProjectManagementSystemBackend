@@ -7,6 +7,6 @@
         public string Description { get; set; }
         public int ProjectId { get; set; }
         public Project Project { get; set; }
-        public ICollection<Status> Statuses { get; set; }
+        public ICollection<BoardStatus> BoardStatuses { get; set; }
     }
 }

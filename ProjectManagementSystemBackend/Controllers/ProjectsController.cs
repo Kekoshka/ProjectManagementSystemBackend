@@ -81,7 +81,7 @@ namespace ProjectManagementSystemBackend.Controllers
                     && p.ProjectId == newProject.Id 
                     && new int[] { 1, 2 }.Contains(p.UserId));
             if (existingUser is null)
-                return Unauthorized("you havent access to this action");
+                return Unauthorized("You havent access to this action");
 
             var updatingProject = await _context.Projects.FirstOrDefaultAsync(p => p.Id == newProject.Id);
             if (updatingProject is null)
@@ -103,7 +103,7 @@ namespace ProjectManagementSystemBackend.Controllers
                     && p.RoleId == 1
                     && p.UserId == _userId);
             if (existsParticipant is null)
-                return Unauthorized("you havent access to this action");
+                return Unauthorized("You havent access to this action");
 
             var beingDeletedProject = await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
             if (beingDeletedProject is null)

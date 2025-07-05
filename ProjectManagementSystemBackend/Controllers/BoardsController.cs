@@ -212,6 +212,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 _context.Remove(canbanBoard);
             _context.Remove(scrumBoard);
             await _context.SaveChangesAsync();
+            return NoContent();
         }
     }
 }

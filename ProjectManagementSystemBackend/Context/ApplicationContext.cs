@@ -11,6 +11,7 @@ namespace ProjectManagementSystemBackend.Context
         }
         public DbSet<ActionType> ActionTypes {  get; set; }
         public DbSet<BaseBoard> BaseBoards { get; set; }
+        public DbSet<BoardStatus> BoardStatuses { get; set; }
         public DbSet<CanbanBoard> CanbanBoards { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Participant> Participants { get; set; }
