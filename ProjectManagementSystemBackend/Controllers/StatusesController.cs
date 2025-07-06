@@ -17,25 +17,24 @@ namespace ProjectManagementSystemBackend.Controllers
     public class StatusesController : ControllerBase
     {
         ApplicationContext _context;
-        int _userId;
-        public StatusesController(ApplicationContext context) 
+        int? userId;
+        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)); public StatusesController(ApplicationContext context) 
         {
             _context = context;
-            _userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
 
         [HttpGet]
         public async Task<IActionResult> Get(int baseBoardId)
         {
-            var availableBoard = _context.BaseBoards
+            var availableBoard = await _context.BaseBoards
                 .Include(bb => bb.Project)
                 .ThenInclude(bb => bb.Participants)
                 .FirstOrDefaultAsync(bb => bb.Id == baseBoardId && 
                 (bb.Project.Security == false || bb.Project.Participants.Any(p => p.UserId == _userId)));
             if (availableBoard is null)
-                return Unauthorized();
+                return Unauthorized("You havent access to this action");
 
-            var statuses = _context.BoardStatuses
+            var statuses = await _context.BoardStatuses
                 .Include(bs => bs.Status)
                 .Where(bs => bs.BaseBoardId == baseBoardId)
                 .Select(bs => new BoardStatus
@@ -61,7 +60,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 .FirstOrDefaultAsync(bb => bb.Id == status.BaseBoardId &&
                 bb.Project.Participants.Any(p => p.UserId == _userId && new int[] { 1, 2 }.Any(r => r == p.RoleId)));
             if (availableBaseBoard is null)
-                return Unauthorized();
+                return Unauthorized("You havent access to this action");
 
             var existsStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == status.Name);
             if(existsStatus is null)
@@ -81,6 +80,13 @@ namespace ProjectManagementSystemBackend.Controllers
             };
             await _context.BoardStatuses.AddAsync(newBoardStatus);
             await _context.SaveChangesAsync();
+
+            StatusDTO newBoardStatusDTO = new() { 
+                Id = newBoardStatus.Id,
+                Name = newBoardStatus.Status.Name,
+                BaseBoardId = newBoardStatus.BaseBoardId, 
+                StatusId = newBoardStatus.StatusId };
+            return Ok(newBoardStatusDTO);
         }
         [HttpPut]
         public async Task<IActionResult> Update(StatusDTO updatedStatus)
@@ -89,10 +95,10 @@ namespace ProjectManagementSystemBackend.Controllers
                 .Include(bs => bs.BaseBoard)
                 .ThenInclude(bs => bs.Project)
                 .ThenInclude(p => p.Participants)
-                .FirstOrDefaultAsync(s => s.StatusId == updatedStatus.Id && 
+                .FirstOrDefaultAsync(s => s.Id == updatedStatus.Id && 
                     s.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[] { 1, 2 }.Any(r => r == p.RoleId)));
             if (availableBoardStatus is null)
-                return Unauthorized();
+                return Unauthorized("You havent access to this action");
 
             var existedStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == updatedStatus.Name);
             if(existedStatus is null)
@@ -116,7 +122,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 Id = availableBoardStatus.Id
             };
 
-            return Ok(statusDTO);
+            return NoContent();
         }
         [HttpDelete]
         public async Task<IActionResult> Delete(int boardStatusId)
@@ -129,12 +135,13 @@ namespace ProjectManagementSystemBackend.Controllers
                 .FirstOrDefaultAsync(bs => bs.Id == boardStatusId &&
                     bs.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[] { 1, 2 }.Any(r => r == p.RoleId)));
             if (availableBoardStatus is null)
-                return Unauthorized();
+                return Unauthorized("You havent access to this action");
 
             var status = await _context.BoardStatuses.FindAsync(boardStatusId);
             if(status is null)
                 return NotFound();
             _context.BoardStatuses.Remove(status);
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

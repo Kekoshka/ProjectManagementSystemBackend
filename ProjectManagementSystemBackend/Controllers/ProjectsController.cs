@@ -18,34 +18,30 @@ namespace ProjectManagementSystemBackend.Controllers
     public class ProjectsController : ControllerBase
     {
         ApplicationContext _context;
-        int _userId;
+        int? userId;
+        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         public ProjectsController(ApplicationContext context) 
         {
             _context = context;
-            _userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
         [HttpGet("getAll")]
         public async Task<IActionResult> Get()
         {
-            var projects = _context.Projects
+            var projects = await _context.Projects
                 .Include(p => p.Participants)
                 .Where(p => p.Security == false || p.Participants.Any(p => p.UserId == _userId))
                 .AsNoTracking()
                 .ToListAsync();
-            
-            return projects is null ? NotFound() : Ok(projects);
-        }
-        [HttpGet("getById")]
-        public async Task<IActionResult> GetById(int projectId)
-        {
-            var project = await _context.Projects
-                .Include(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == projectId
-                && (p.Security == false
-                || p.Participants.Any(p => p.UserId == _userId)));
 
-            return project is null ? NotFound() : Ok(project); 
+            List<ProjectDTO> projectsDTO = projects.Select(p => new ProjectDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Security = p.Security
+            }).ToList();
+
+            return projects is null ? NotFound() : Ok(projectsDTO);
         }
         [HttpPost]
         public async Task<IActionResult> Create(ProjectDTO project)
@@ -69,13 +65,13 @@ namespace ProjectManagementSystemBackend.Controllers
             newProject.Participants = [newParticipant];
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(newProject.Id);
         }
 
         [HttpPut]
         public async Task<IActionResult> Update(ProjectDTO newProject)
         {
-            var existingUser = _context.Participants
+            var existingUser = await _context.Participants
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.UserId == _userId 
                     && p.ProjectId == newProject.Id 
@@ -90,6 +86,7 @@ namespace ProjectManagementSystemBackend.Controllers
             updatingProject.Name = newProject.Name;
             updatingProject.Description = newProject.Description;
             updatingProject.Security = newProject.Security;
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

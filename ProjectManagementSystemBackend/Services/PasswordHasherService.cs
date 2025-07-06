@@ -12,9 +12,9 @@ namespace ProjectManagementSystemBackend.Services
             return BCrypt.Net.BCrypt.HashPassword(password, _workFactor);
         }
 
-        public bool Verify(string password, string hashedPassword)
+        public bool Verify(string text, string hash)
         {
-            return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+            return BCrypt.Net.BCrypt.Verify(text, hash);
         }
     }
 }

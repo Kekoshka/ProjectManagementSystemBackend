@@ -49,16 +49,5 @@ namespace ProjectManagementSystemBackend.Services
             await _context.TaskHistories.AddAsync(newTaskHistory);
             await _context.SaveChangesAsync();
         }
-        public async Task DeleteAsync(Models.Task task, int userId)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            if (user is null)
-                return;
-            string actionString = $"{user.Name} удалил задачу под названием '{task.Name}'";
-
-            TaskHistory newTaskHistory = new(DateTime.UtcNow, actionString, userId, task.Id, 3);
-            await _context.TaskHistories.AddAsync(newTaskHistory);
-            await _context.SaveChangesAsync();
-        }
     }
 }

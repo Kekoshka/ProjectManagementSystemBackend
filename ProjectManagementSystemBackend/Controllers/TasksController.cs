@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +12,16 @@ namespace ProjectManagementSystemBackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TasksController : ControllerBase
     {
         ApplicationContext _context;
-        int _userId;
-        ITaskHistory _taskHistoryService;
+        int? userId;
+        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)); ITaskHistory _taskHistoryService;
         public TasksController(ApplicationContext context, ITaskHistory taskHistoryService) 
         {
             _context = context;
             _taskHistoryService = taskHistoryService;
-            _userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
 
         [HttpGet]
@@ -58,7 +59,10 @@ namespace ProjectManagementSystemBackend.Controllers
             int currentParticipantId = availableBoardStatus.BaseBoard.Project.Participants
                 .FirstOrDefault(p => p.UserId == _userId).Id;
             if (currentParticipantId is 0)
-                return NotFound("Internal server error, participant not found");
+                return NotFound("Participant not found");
+            var existResponsiblePerson = await _context.Participants.FindAsync(task.ResponsiblePersonId);
+            if (existResponsiblePerson is null)
+                return BadRequest("Invalid responsible person id");
 
             Models.Task newTask = new(task.Name,
                 task.Description,
@@ -72,9 +76,21 @@ namespace ProjectManagementSystemBackend.Controllers
             await _context.Tasks.AddAsync(newTask);
             await _context.SaveChangesAsync();
 
-            await _taskHistoryService.CreateAsync(newTask,_userId)
+            await _taskHistoryService.CreateAsync(newTask, _userId);
 
-            return Ok(newTask);
+            TaskDTO taskDTO = new()
+            {
+                BoardStatusId = newTask.BoardStatusId,
+                CreatorId = newTask.CreatorId,
+                Description = newTask.Description,
+                Id = newTask.Id,
+                LastUpdate = newTask.LastUpdate,
+                Name = newTask.Name,
+                Priority = newTask.Priority,
+                ResponsiblePersonId = newTask.ResponsiblePersonId,
+                TimeLimit = newTask.TimeLimit
+            };
+            return Ok(taskDTO);
         }
         [HttpPut]
         public async Task<IActionResult> Update(TaskDTO updatedTask)
@@ -89,6 +105,14 @@ namespace ProjectManagementSystemBackend.Controllers
                     t.BoardStatus.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[] {1,2}.Any(r => r == p.RoleId)));
             if (availableTask is null)
                 return Unauthorized();
+
+            var existBoardStauts = await _context.BoardStatuses.FindAsync(updatedTask.BoardStatusId);
+            if (existBoardStauts is null)
+                return BadRequest("Invalid board status id");
+
+            var existResponsiblePerson = await _context.Participants.FindAsync(updatedTask.ResponsiblePersonId);
+            if (existResponsiblePerson is null)
+                return BadRequest("Invalid responsible person id");
 
             var task = await _context.Tasks.FindAsync(updatedTask.Id);
             if (task is null)
@@ -119,7 +143,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 .FirstOrDefaultAsync(t => t.Id == taskId &&
                 t.BoardStatus.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[] { 1, 2 }.Any(r => r == p.RoleId)));
             if (availableTask is null)
-                return Unauthorized();
+                return Unauthorized("You havent access to this action");
 
             var task = await _context.Tasks.FindAsync(taskId);
             if(task is null)
@@ -127,8 +151,6 @@ namespace ProjectManagementSystemBackend.Controllers
 
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
-
-            await _taskHistoryService.DeleteAsync(task, _userId);
 
             return NoContent();
         }

@@ -14,6 +14,7 @@
         public BoardStatus? BoardStatus { get; set; }
         public Participant? ResponsiblePerson { get; set; }
         public Participant? Creator { get; set; }
+        public ICollection<TaskComment>? TaskComments { get; set; }
         public Task(string name, string description, int priority, DateTime lastUpdate, DateTime timeLimit, int creatorId, int responsiblePersonId, int boardStatusId)
         {
             Name = name;

@@ -1,4 +1,5 @@
 ﻿using Microsoft.IdentityModel.Tokens;
+using ProjectManagementSystemBackend.Common;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
@@ -11,10 +12,6 @@ namespace ProjectManagementSystemBackend.Services
 {
     public class AuthenticationService : IAuthentication
     {
-        private readonly string Issuer = "PMSBackend";
-        private readonly string Key = "]VG#GgD6t0.x%GDc;yyz2Zi-v.En)NTBW]{5X_W!UE9O@;t/*~s73u8{xB7'";
-        private SymmetricSecurityKey GetSymmetricSecurityKey() =>
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key));
 
         public string GetJWT(User user)
         {
@@ -25,11 +22,11 @@ namespace ProjectManagementSystemBackend.Services
             };
 
             var jwt = new JwtSecurityToken(
-                issuer: Issuer,
+                issuer: AuthOptions.Issuer,
                 audience: user.Id.ToString(),
                 expires: DateTime.UtcNow.AddMinutes(60),
                 claims: claims,
-                signingCredentials: new SigningCredentials(GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+                signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
            
             return new JwtSecurityTokenHandler().WriteToken(jwt);
         }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
@@ -10,14 +11,15 @@ namespace ProjectManagementSystemBackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class BoardsController : ControllerBase
     {
         ApplicationContext _context;
-        int _userId;
+        int? userId;
+        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         public BoardsController(ApplicationContext context)
         {
             _context = context;
-            _userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
         [HttpGet("getBaseBoardsByProjectId")]
         public async Task<IActionResult> GetBoardsByProjectId(int projectId)
@@ -31,7 +33,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (availableProject is null)
                 return Unauthorized("You havent access to this action");
 
-            var boards = _context.BaseBoards
+            var boards = await _context.BaseBoards
                 .Where(b => b.ProjectId == projectId)
                 .AsNoTracking()
                 .ToListAsync();
@@ -41,23 +43,24 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpGet("getBoardByBaseBoardId")]
         public async Task<IActionResult> GetByBaseBoardId(int baseBoardId)
         {
-            var availableBoard = _context.BaseBoards
+            var availableBoard = await _context.BaseBoards
                 .Include(bb => bb.Project)
                 .ThenInclude(p => p.Participants)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(bb => bb.Project.Security == false && bb.Project.Participants.Any(p => p.UserId == _userId));
+                .FirstOrDefaultAsync(bb => bb.Project.Security == false ||
+                bb.Project.Participants.Any(p => p.UserId == _userId));
             if (availableBoard is null)
                 return Unauthorized("You havent access to this action");
 
-            var scrumBoard = _context.ScrumBoards
+            var scrumBoard = await _context.ScrumBoards
                 .AsNoTracking()
                 .FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId);
             if (scrumBoard is not null)
                 return Ok(scrumBoard);
 
-            var canbanBoard = _context.CanbanBoards
+            var canbanBoard = await _context.CanbanBoards
                 .AsNoTracking()
-                .FirstOrDefault(cb => cb.BaseBoardId == baseBoardId);
+                .FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId);
             return canbanBoard is null ? NotFound() : Ok(canbanBoard);
         }
         [HttpPost("postCanbanBoard")]
@@ -70,8 +73,7 @@ namespace ProjectManagementSystemBackend.Controllers
                .Include(p => p.Participants)
                .AsNoTracking()
                .FirstOrDefaultAsync(p => p.Id == canbanBoard.BaseBoard.ProjectId &&
-               (p.Security == false ||
-               p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId))));
+               p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
             if (availableProject is null)
                 return Unauthorized("You havent access to this action");
 
@@ -89,13 +91,22 @@ namespace ProjectManagementSystemBackend.Controllers
                 BaseBoardId = newBaseBoard.Id,
                 TaskLimit = canbanBoard.TaskLimit
             };
-            await _context.AddAsync(newCanbanBoard);
+            await _context.CanbanBoards.AddAsync(newCanbanBoard);
+
+            List<BoardStatus> newBoardStatuses = [
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 1 },
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 2 },
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 3 },
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 4 }];
+            await _context.BoardStatuses.AddRangeAsync(newBoardStatuses);
+
             await _context.SaveChangesAsync();
 
             newCanbanBoard.BaseBoard = newBaseBoard;
+            newCanbanBoard.BaseBoard.BoardStatuses = null;
             return Ok(newCanbanBoard);
         }
-        [HttpPost("postScrum")]
+        [HttpPost("postScrumBoard")]
         public async Task<IActionResult> PostScrum(ScrumBoardDTO scrumBoard)
         {
             if (scrumBoard.BaseBoard is null)
@@ -105,8 +116,7 @@ namespace ProjectManagementSystemBackend.Controllers
                .Include(p => p.Participants)
                .AsNoTracking()
                .FirstOrDefaultAsync(p => p.Id == scrumBoard.BaseBoard.ProjectId &&
-               (p.Security == false ||
-               p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId))));
+               p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
             if (availableProject is null)
                 return Unauthorized("You havent access to this action");
 
@@ -116,7 +126,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 Description = scrumBoard.BaseBoard.Description,
                 ProjectId = scrumBoard.BaseBoard.ProjectId
             };
-            await _context.AddAsync(newBaseBoard);
+            await _context.BaseBoards.AddAsync(newBaseBoard);
             await _context.SaveChangesAsync();
 
             ScrumBoard newScrumBoard = new()
@@ -125,18 +135,23 @@ namespace ProjectManagementSystemBackend.Controllers
                 TimeLimit = scrumBoard.TimeLimit
             };
             await _context.ScrumBoards.AddAsync(newScrumBoard);
+
+            List<BoardStatus> newBoardStatuses = [
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 1 },
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 2 },
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 3 },
+                new BoardStatus{ BaseBoardId = newBaseBoard.Id, StatusId = 4 }];
+            await _context.BoardStatuses.AddRangeAsync(newBoardStatuses);
             await _context.SaveChangesAsync();
 
             newScrumBoard.BaseBoard = newBaseBoard;
+            newScrumBoard.BaseBoard.BoardStatuses = null;
             return Ok(newScrumBoard);
         }
 
-        [HttpPut]
+        [HttpPut("updateCanbanBoard")]
         public async Task<IActionResult> UpdateCanbanBoard(CanbanBoardDTO newCanbanBoard)
         {
-            if (newCanbanBoard.BaseBoard is null)
-                return BadRequest();
-
             var availableProject = await _context.Projects
                 .Include(p => p.Participants)
                 .AsNoTracking()
@@ -148,32 +163,35 @@ namespace ProjectManagementSystemBackend.Controllers
             var canbanBoard = await _context.CanbanBoards.FindAsync(newCanbanBoard.Id);
             if (canbanBoard is null)
                 return NotFound($"Not found canban board with {newCanbanBoard.Id} id");
+            if (canbanBoard.BaseBoardId != newCanbanBoard.BaseBoardId)
+                return UnprocessableEntity($"CanbanBoard doesnt have BaseBoard with {newCanbanBoard.BaseBoardId} id");
             canbanBoard.TaskLimit = newCanbanBoard.TaskLimit;
 
             var baseBoard = await _context.BaseBoards.FindAsync(newCanbanBoard.BaseBoardId);
             if (baseBoard is null)
-                return NotFound($"Not found base board with {newCanbanBoard.BaseBoard.Id} id");
+                return NotFound($"Not found base board with {newCanbanBoard.BaseBoardId} id");
             baseBoard.Name = newCanbanBoard.BaseBoard.Name;
             baseBoard.Description = newCanbanBoard.BaseBoard.Description;
 
             await _context.SaveChangesAsync();
             return Ok();
         }
-        [HttpPut]
+        [HttpPut("updateScrumBoard")]
         public async Task<IActionResult> UpdateScrumBoard(ScrumBoardDTO newScrumBoard)
         {
-            if (newScrumBoard.BaseBoard is null)
-                return BadRequest();
-
             var availableProject = await _context.Projects
                 .Include(p => p.Participants)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == newScrumBoard.BaseBoard.ProjectId &&
-                    p.Participants.Any(p => p.UserId == _userId && new[] {1,2}.Contains(p.RoleId)));
+                    p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
+            if (availableProject is null)
+                return Unauthorized("You havent access to this action");
 
             var scrumBoard = await _context.ScrumBoards.FindAsync(newScrumBoard.Id);
             if (scrumBoard is null)
                 return NotFound($"Not found scrum board with {newScrumBoard.Id} id");
+            if (scrumBoard.BaseBoardId != newScrumBoard.BaseBoardId)
+                return UnprocessableEntity($"CanbanBoard doesnt have BaseBoard with {newScrumBoard.BaseBoardId} id");
             scrumBoard.TimeLimit = newScrumBoard.TimeLimit;
             
             var baseBoard = await _context.BaseBoards.FindAsync(newScrumBoard.BaseBoardId);
@@ -188,7 +206,7 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete(int baseBoardId)
         {
-            var availableBoard = _context.BaseBoards
+            var availableBoard = await _context.BaseBoards
                 .Include(p => p.Project)
                 .ThenInclude(p => p.Participants)
                 .AsNoTracking()
@@ -197,21 +215,22 @@ namespace ProjectManagementSystemBackend.Controllers
             if (availableBoard is null)
                 return Unauthorized("You havent access to this action");
 
-            var baseBoard = _context.BaseBoards.Find(baseBoardId);
+            var baseBoard = await _context.BaseBoards.FindAsync(baseBoardId);
             if (baseBoard is null)
                 return NotFound("Not found base board");
             
-            var scrumBoard = _context.ScrumBoards.FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId);
-            var canbanBoard = _context.CanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId);
+            var scrumBoard = await _context.ScrumBoards.FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId);
+            var canbanBoard = await _context.CanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId);
 
             if (scrumBoard is null && canbanBoard is null)
                 return NotFound("Not found scrum and canban boards");
 
-            _context.Remove(baseBoard);
+            _context.BaseBoards.Remove(baseBoard);
             if (scrumBoard is null)
-                _context.Remove(canbanBoard);
-            _context.Remove(scrumBoard);
+                _context.CanbanBoards.Remove(canbanBoard);
+            _context.ScrumBoards.Remove(scrumBoard);
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
     }

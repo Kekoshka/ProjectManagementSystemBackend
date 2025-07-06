@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
@@ -10,20 +11,20 @@ namespace ProjectManagementSystemBackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ParticipantsController : ControllerBase
     {
         ApplicationContext _context;
-        int _userId;
-        public ParticipantsController(ApplicationContext context) 
+        int? userId;
+        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)); public ParticipantsController(ApplicationContext context) 
         {
             _context = context;
-            _userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
 
-        [HttpGet("getByProjectId")]
-        public async Task<IActionResult> GetByProjectId(int projectId)
+        [HttpGet]
+        public async Task<IActionResult> Get(int projectId)
         {
-            var availableProject = _context.Projects
+            var availableProject = await _context.Projects
                 .Include(p => p.Participants)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == projectId && 
@@ -31,13 +32,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if (availableProject is null)
                 return Unauthorized("You havent access to this action");
 
-            var participants = _context.Participants
+            var participants = await _context.Participants
                 .Include(p => p.User)
                 .Where(p => p.ProjectId == projectId)
                 .Select(p => new ParticipantDTO()
                 {
                     Id = p.Id,
-                    ProjectId = p.Id,
+                    ProjectId = p.ProjectId,
                     RoleId = p.RoleId,
                     UserId = _userId,
                     User = new UserDTO()
@@ -53,35 +54,51 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpPost]
         public async Task<IActionResult> Post(ParticipantDTO participant)
         {
-            var availableProject = _context.Projects
+            var availableProject = await _context.Projects
                 .Include(p => p.Participants)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == participant.ProjectId &&
                     p.Participants.Any(p => p.UserId == _userId && p.RoleId == 1));
             if (availableProject is null)
                 return Unauthorized("You havent access to this action");
-            
+            if (!new int[] { 1, 2, 3 }.Any(r => r == participant.RoleId))
+                return BadRequest("Invalid role id");
+            var existUser = await _context.Users.FindAsync(participant.UserId);
+            if (existUser is null)
+                return BadRequest("Invalid user id");
+            var existProject = await _context.Projects.FindAsync(participant.ProjectId);
+            if (existProject is null)
+                return BadRequest("invalid project id");
+            var existParticipant = await _context.Participants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.ProjectId == participant.ProjectId && 
+                    p.UserId == participant.UserId);
+            if (existParticipant is not null)
+                return Conflict("User is already a participant of the project");
+
             Participant newParticipant = new()
             {
                 UserId = participant.UserId,
                 ProjectId = participant.ProjectId,
                 RoleId = participant.RoleId
             };
-            _context.Participants.Add(newParticipant);
+            await _context.Participants.AddAsync(newParticipant);
             await _context.SaveChangesAsync();
 
-            return Ok(newParticipant);
+            return Ok(newParticipant.Id);
         }
         [HttpPut]
         public async Task<IActionResult> Update(ParticipantDTO newParticipant)
         {
-            var availableProject = _context.Projects
+            var availableProject = await _context.Projects
                 .Include(p => p.Participants)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == newParticipant.ProjectId &&
                     p.Participants.Any(p => p.UserId == _userId && p.RoleId == 1));
             if (availableProject is null)
                 return Unauthorized("You havent access to this action");
+            if (!new int[] {1,2,3}.Any(r => r == newParticipant.RoleId))
+                return BadRequest("Invalid role id");
 
             var participant = await _context.Participants.FindAsync(newParticipant.Id);
             if (participant is null)

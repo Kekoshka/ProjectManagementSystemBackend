@@ -23,21 +23,24 @@ namespace ProjectManagementSystemBackend.Controllers
             _authenticationService = authenticationService;
         }
 
-        [Authorize]
         [HttpPost("authorization")]
         public async Task<IActionResult> Authorization(AuthData authData)
         {
-            string hashedPassword = _passwordHasherService.Hash(authData.Password);
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Login == authData.Login && authData.Password == hashedPassword);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Login == authData.Login);
             if (user is null)
                 return Unauthorized("Invalid login or password");
+
+            bool passwordIsValid  =_passwordHasherService.Verify(authData.Password, user.Password);
+            if (!passwordIsValid)
+                return Unauthorized("Invalid login or password");
+
             var jwt = _authenticationService.GetJWT(user);
             return Ok(jwt);
         }
         [HttpPost("registration")]
         public async Task<IActionResult> Registration(User user)
         {
-            var existingUser = _context.Users.FirstOrDefaultAsync(u => u.Login == user.Login);
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Login == user.Login);
             if (existingUser is not null)
                 return Conflict("user with such data is already exists");
 
@@ -45,7 +48,7 @@ namespace ProjectManagementSystemBackend.Controllers
             {
                 Login = user.Login,
                 Name = user.Name,
-                Password = user.Password
+                Password = _passwordHasherService.Hash(user.Password)
             };
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
