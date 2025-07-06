@@ -41,6 +41,8 @@ namespace ProjectManagementSystemBackend.Services
             {
                 object oldValue = property.GetValue(oldTask);
                 object newValue = property.GetValue(newTask);
+                if (newValue == default || oldValue == default)
+                    continue;
                 if (!Equals(oldValue, newValue))
                     actionString += $"'{property.Name}' изменено с '{oldValue}' на '{newValue}' ";
             }
