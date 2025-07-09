@@ -1,5 +1,4 @@
 ﻿using Microsoft.IdentityModel.Tokens;
-using ProjectManagementSystemBackend.Common;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
@@ -10,9 +9,13 @@ using static Azure.Core.HttpHeader;
 
 namespace ProjectManagementSystemBackend.Services
 {
-    public class AuthenticationService : IAuthentication
+    public class AuthenticationService : IAuthenticationService
     {
-
+        IConfiguration _configuration;
+        public AuthenticationService(IConfiguration configuration) 
+        {
+            _configuration = configuration;
+        }
         public string GetJWT(User user)
         {
             List<Claim> claims = new List<Claim>
@@ -22,11 +25,11 @@ namespace ProjectManagementSystemBackend.Services
             };
 
             var jwt = new JwtSecurityToken(
-                issuer: AuthOptions.Issuer,
+                issuer: _configuration["JWT:Issuer"],
                 audience: user.Id.ToString(),
                 expires: DateTime.UtcNow.AddMinutes(60),
                 claims: claims,
-                signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+                signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Key"])), SecurityAlgorithms.HmacSha256));
            
             return new JwtSecurityTokenHandler().WriteToken(jwt);
         }

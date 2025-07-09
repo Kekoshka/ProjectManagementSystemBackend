@@ -6,9 +6,11 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Identity.Client;
 using ProjectManagementSystemBackend.Context;
+using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Security.Claims;
+using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
 
 namespace ProjectManagementSystemBackend.Controllers
 {
@@ -18,14 +20,20 @@ namespace ProjectManagementSystemBackend.Controllers
     public class ProjectsController : ControllerBase
     {
         ApplicationContext _context;
+        IAuthorizationService _authorizationService;
+
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        public ProjectsController(ApplicationContext context) 
+        int[] _userRoles = [1, 2, 3];
+        int[] _adminRoles = [1, 2];
+        int[] _ownerRoles = [1];
+        public ProjectsController(ApplicationContext context, IAuthorizationService authorizationService) 
         {
             _context = context;
+            _authorizationService = authorizationService;
         }
-        [HttpGet("getAll")]
-        public async Task<IActionResult> Get()
+        [HttpGet]
+        public async Task<IActionResult> GetAsync()
         {
             var projects = await _context.Projects
                 .Include(p => p.Participants)
@@ -44,7 +52,7 @@ namespace ProjectManagementSystemBackend.Controllers
             return projects is null ? NotFound() : Ok(projectsDTO);
         }
         [HttpPost]
-        public async Task<IActionResult> Create(ProjectDTO project)
+        public async Task<IActionResult> CreateAsync(ProjectDTO project)
         {
             Project newProject = new()
             {
@@ -69,14 +77,10 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> Update(ProjectDTO newProject)
+        public async Task<IActionResult> UpdateAsync(ProjectDTO newProject, CancellationToken cancellationToken)
         {
-            var existingUser = await _context.Participants
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.UserId == _userId 
-                    && p.ProjectId == newProject.Id 
-                    && new int[] { 1, 2 }.Contains(p.UserId));
-            if (existingUser is null)
+            bool isAuthorize = await _authorizationService.AccessByProjectIdAsync(newProject.Id, _userId, _ownerRoles, cancellationToken);
+            if(!isAuthorize)
                 return Unauthorized("You havent access to this action");
 
             var updatingProject = await _context.Projects.FirstOrDefaultAsync(p => p.Id == newProject.Id);
@@ -92,14 +96,10 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> Delete(int projectId)
+        public async Task<IActionResult> DeleteAsync(int projectId, CancellationToken cancellationToken)
         {
-            var existsParticipant = await _context.Participants
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.ProjectId == projectId
-                    && p.RoleId == 1
-                    && p.UserId == _userId);
-            if (existsParticipant is null)
+            bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(projectId, _userId, _ownerRoles, cancellationToken);
+            if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             var beingDeletedProject = await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId);

@@ -7,6 +7,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Security.Claims;
+using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
 
 namespace ProjectManagementSystemBackend.Controllers
 {
@@ -16,24 +17,25 @@ namespace ProjectManagementSystemBackend.Controllers
     public class TasksController : ControllerBase
     {
         ApplicationContext _context;
+        IAuthorizationService _authorizationService;
+        ITaskHistoryService _taskHistoryService;
         int? userId;
-        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)); ITaskHistory _taskHistoryService;
-        public TasksController(ApplicationContext context, ITaskHistory taskHistoryService) 
+        int[] _userRoles = [1, 2, 3];
+        int[] _adminRoles = [1, 2];
+        int[] _ownerRoles = [1];
+        int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)); 
+        public TasksController(ApplicationContext context, ITaskHistoryService taskHistoryService, IAuthorizationService authorizationService) 
         {
             _context = context;
             _taskHistoryService = taskHistoryService;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get(int baseBoadrId)
+        public async Task<IActionResult> GetAsync(int baseBoadrId,CancellationToken cancellationToken)
         {
-            var availableBaseBoard = _context.BaseBoards
-                .Include(bb => bb.Project)
-                .ThenInclude(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(bb => bb.Id == baseBoadrId &&
-                    (bb.Project.Security == false || bb.Project.Participants.Any(p => p.UserId == _userId)));
-            if (availableBaseBoard is null)
+            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(baseBoadrId, _userId, _userRoles, cancellationToken);
+            if(!isAuthorized)    
                 return Unauthorized("You havent access to this action");
 
             var baseBoard = await _context.BaseBoards.Include(bb => bb.BoardStatuses).ThenInclude(bs => bs.Tasks).FirstOrDefaultAsync(bb => bb.Id == baseBoadrId);
@@ -44,20 +46,15 @@ namespace ProjectManagementSystemBackend.Controllers
             return tasks is null ? NotFound() : Ok(tasks);
         }
         [HttpPost]
-        public async Task<IActionResult> Post(TaskDTO task)
+        public async Task<IActionResult> PostAsync(TaskDTO task,CancellationToken cancellationToken)
         {
-            var availableBoardStatus = await _context.BoardStatuses
-                .Include(bs => bs.BaseBoard)
-                .ThenInclude(bb => bb.Project)
-                .ThenInclude(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(bs => bs.Id == task.BoardStatusId &&
-                (bs.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[]{ 1,2}.Any(r => r == p.RoleId))));
-            if (availableBoardStatus is null)
-                return Unauthorized();
+            bool isAuthorized = await _authorizationService.AccessByBoardStatusIdAsync(task.BoardStatusId, _userId, _adminRoles, cancellationToken);
+            if(!isAuthorized)
+                return Unauthorized("You havent access to this action");
 
-            int currentParticipantId = availableBoardStatus.BaseBoard.Project.Participants
-                .FirstOrDefault(p => p.UserId == _userId).Id;
+            var existParticipant = _context.BoardStatuses
+                .Where(bs => bs.Id == task.BoardStatusId && 
+                bs.BaseBoard.Project.Participants.Any(p => p.UserId == ))
             if (currentParticipantId is 0)
                 return NotFound("Participant not found");
             var existResponsiblePerson = await _context.Participants.FindAsync(task.ResponsiblePersonId);
@@ -93,19 +90,12 @@ namespace ProjectManagementSystemBackend.Controllers
             return Ok(taskDTO);
         }
         [HttpPut]
-        public async Task<IActionResult> Update(TaskDTO updatedTask)
+        public async Task<IActionResult> UpdateAsync(TaskDTO updatedTask,CancellationToken cancellationToken)
         {
-            var availableTask = await _context.Tasks
-                .Include(t => t.BoardStatus)
-                .ThenInclude(bs => bs.BaseBoard)
-                .ThenInclude(bb => bb.Project)
-                .ThenInclude(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == updatedTask.Id && 
-                    t.BoardStatus.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[] {1,2}.Any(r => r == p.RoleId)));
-            if (availableTask is null)
-                return Unauthorized();
-
+            bool isAuthorized = await _authorizationService.AccessByTaskIdAsync(updatedTask.Id, _userId, _adminRoles, cancellationToken);
+            if(!isAuthorized)
+                return Unauthorized("You havent access to this action");
+             
             var existBoardStauts = await _context.BoardStatuses.FindAsync(updatedTask.BoardStatusId);
             if (existBoardStauts is null)
                 return BadRequest("Invalid board status id");
@@ -113,7 +103,8 @@ namespace ProjectManagementSystemBackend.Controllers
             var existResponsiblePerson = await _context.Participants.FindAsync(updatedTask.ResponsiblePersonId);
             if (existResponsiblePerson is null)
                 return BadRequest("Invalid responsible person id");
-
+                
+            var oldTask = await _context.Tasks.FindAsync(updatedTask.Id);
             var task = await _context.Tasks.FindAsync(updatedTask.Id);
             if (task is null)
                 return NotFound("Task not found");
@@ -127,22 +118,15 @@ namespace ProjectManagementSystemBackend.Controllers
 
             await _context.SaveChangesAsync();
 
-            await _taskHistoryService.UpdateAsync(availableTask, task, _userId);
+            await _taskHistoryService.UpdateAsync(oldTask, task, _userId);
 
             return NoContent();
         }
         [HttpDelete]
-        public async Task<IActionResult> Delete(int taskId)
+        public async Task<IActionResult> DeleteAsync(int taskId,CancellationToken cancellationToken)
         {
-            var availableTask = await _context.Tasks
-                .Include(t => t.BoardStatus)
-                .ThenInclude(t => t.BaseBoard)
-                .ThenInclude(t => t.Project)
-                .ThenInclude(t => t.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == taskId &&
-                t.BoardStatus.BaseBoard.Project.Participants.Any(p => p.UserId == _userId && new int[] { 1, 2 }.Any(r => r == p.RoleId)));
-            if (availableTask is null)
+            bool isAuthorize = await _authorizationService.AccessByTaskIdAsync(taskId, _userId, _adminRoles, cancellationToken);
+            if(!isAuthorize)
                 return Unauthorized("You havent access to this action");
 
             var task = await _context.Tasks.FindAsync(taskId);

@@ -1,14 +1,17 @@
+using Mapster;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
-using ProjectManagementSystemBackend.Common;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Services;
+using System.Text;
+using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
 using Task = ProjectManagementSystemBackend.Models.Task;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +23,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationContext>(config =>
 {
-    config.UseSqlServer("Server=localhost;Database=ProjectManagementSystemBackend;Trusted_Connection=true;Encrypt=False");
+    config.UseSqlServer(builder.Configuration["ConnectionStrings:ConnectionStringMSSQL"]);
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -29,10 +32,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
 
             ValidateIssuer = true,
-            ValidIssuer = AuthOptions.Issuer,
+            ValidIssuer = builder.Configuration["JWT:Issuer"],
             ValidateAudience = true,
             ValidateLifetime = true,
-            IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
             AudienceValidator = (audiences, securityToken, validationParameters) =>
             {
                 using var scope = builder.Services.BuildServiceProvider().CreateScope();
@@ -44,9 +47,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
-builder.Services.AddScoped<IPasswordHasher, PasswordHasherService>();
-builder.Services.AddScoped<IAuthentication, ProjectManagementSystemBackend.Services.AuthenticationService>();
-builder.Services.AddScoped<ITaskHistory, TaskHistoryService>();
+builder.Services.AddMapster();
+builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+builder.Services.AddScoped<ProjectManagementSystemBackend.Interfaces.IAuthenticationService, ProjectManagementSystemBackend.Services.AuthenticationService>();
+builder.Services.AddScoped<ITaskHistoryService, TaskHistoryService>();
+builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 
 var app = builder.Build();
 

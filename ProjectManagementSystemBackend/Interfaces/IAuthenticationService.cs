@@ -2,7 +2,7 @@
 
 namespace ProjectManagementSystemBackend.Interfaces
 {
-    public interface IAuthentication
+    public interface IAuthenticationService
     {
         string GetJWT(User user);
     }

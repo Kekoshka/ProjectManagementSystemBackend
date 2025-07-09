@@ -14,9 +14,9 @@ namespace ProjectManagementSystemBackend.Controllers
     public class UsersController : ControllerBase
     {
         ApplicationContext _context;
-        IPasswordHasher _passwordHasherService;
-        IAuthentication _authenticationService;
-        public UsersController(ApplicationContext context,IPasswordHasher passwordHasherService, IAuthentication authenticationService)
+        IPasswordHasherService _passwordHasherService;
+        IAuthenticationService _authenticationService;
+        public UsersController(ApplicationContext context,IPasswordHasherService passwordHasherService, IAuthenticationService authenticationService)
         {
             _context = context;
             _passwordHasherService = passwordHasherService;
@@ -24,7 +24,7 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         [HttpPost("authorization")]
-        public async Task<IActionResult> Authorization(AuthData authData)
+        public async Task<IActionResult> AuthorizationAsync(AuthData authData)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Login == authData.Login);
             if (user is null)
@@ -38,7 +38,7 @@ namespace ProjectManagementSystemBackend.Controllers
             return Ok(jwt);
         }
         [HttpPost("registration")]
-        public async Task<IActionResult> Registration(User user)
+        public async Task<IActionResult> RegistrationAsync(User user)
         {
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Login == user.Login);
             if (existingUser is not null)
@@ -50,7 +50,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 Name = user.Name,
                 Password = _passwordHasherService.Hash(user.Password)
             };
-            _context.Users.Add(newUser);
+            await _context.Users.AddAsync(newUser);
             await _context.SaveChangesAsync();
             
             return NoContent();

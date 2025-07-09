@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Mapster;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
+using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Security.Claims;
@@ -15,66 +17,59 @@ namespace ProjectManagementSystemBackend.Controllers
     public class BoardsController : ControllerBase
     {
         ApplicationContext _context;
+        Interfaces.IAuthorizationService _authorizationService;
+
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        public BoardsController(ApplicationContext context)
+        int[] _userRoles = [1, 2, 3];
+        int[] _adminRoles = [1, 2];
+        int[] _ownerRoles = [1];
+
+        public BoardsController(ApplicationContext context, Interfaces.IAuthorizationService authorizationService)
         {
             _context = context;
+            _authorizationService = authorizationService;
         }
         [HttpGet("getBaseBoardsByProjectId")]
-        public async Task<IActionResult> GetBoardsByProjectId(int projectId)
+        public async Task<IActionResult> GetBoardsByProjectIdAsync(int projectId, CancellationToken cancellationToken)
         {
-            var availableProject = await _context.Projects
-               .Include(p => p.Participants)
-               .AsNoTracking()
-               .FirstOrDefaultAsync(p => p.Id == projectId &&
-               (p.Security == false ||
-               p.Participants.Any(p => p.UserId == _userId)));
-            if (availableProject is null)
+            var IsAuthorize = await _authorizationService.AccessByProjectIdAsync(projectId, _userId, _userRoles, cancellationToken);
+            if (!IsAuthorize)
                 return Unauthorized("You havent access to this action");
 
             var boards = await _context.BaseBoards
                 .Where(b => b.ProjectId == projectId)
+                .ProjectToType<BaseBoardDTO>()
                 .AsNoTracking()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             return boards is null ? NotFound() : Ok(boards);
         }
         [HttpGet("getBoardByBaseBoardId")]
-        public async Task<IActionResult> GetByBaseBoardId(int baseBoardId)
+        public async Task<IActionResult> GetByBaseBoardIdAsync(int baseBoardId, CancellationToken cancellationToken)
         {
-            var availableBoard = await _context.BaseBoards
-                .Include(bb => bb.Project)
-                .ThenInclude(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(bb => bb.Project.Security == false ||
-                bb.Project.Participants.Any(p => p.UserId == _userId));
-            if (availableBoard is null)
+            bool IsAuthorize = await _authorizationService.AccessByBoardIdAsync(baseBoardId, _userId, _userRoles, cancellationToken);
+            if (!IsAuthorize)
                 return Unauthorized("You havent access to this action");
 
             var scrumBoard = await _context.ScrumBoards
                 .AsNoTracking()
+                .ProjectToType<ScrumBoardDTO>()
                 .FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId);
             if (scrumBoard is not null)
                 return Ok(scrumBoard);
 
             var canbanBoard = await _context.CanbanBoards
                 .AsNoTracking()
+                .ProjectToType<CanbanBoardDTO>()
                 .FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId);
             return canbanBoard is null ? NotFound() : Ok(canbanBoard);
         }
         [HttpPost("postCanbanBoard")]
-        public async Task<IActionResult> PostCanban(CanbanBoardDTO canbanBoard)
+        public async Task<IActionResult> PostCanbanAsync(CanbanBoardDTO canbanBoard, CancellationToken cancellationToken)
         {
-            if (canbanBoard.BaseBoard is null)
-                return BadRequest();
-
-            var availableProject = await _context.Projects
-               .Include(p => p.Participants)
-               .AsNoTracking()
-               .FirstOrDefaultAsync(p => p.Id == canbanBoard.BaseBoard.ProjectId &&
-               p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
-            if (availableProject is null)
+            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(canbanBoard.BaseBoard.Id, _userId, _adminRoles, cancellationToken);
+            if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             BaseBoard newBaseBoard = new()
@@ -107,17 +102,10 @@ namespace ProjectManagementSystemBackend.Controllers
             return Ok(newCanbanBoard);
         }
         [HttpPost("postScrumBoard")]
-        public async Task<IActionResult> PostScrum(ScrumBoardDTO scrumBoard)
+        public async Task<IActionResult> PostScrumAsync(ScrumBoardDTO scrumBoard, CancellationToken cancellationToken)
         {
-            if (scrumBoard.BaseBoard is null)
-                return BadRequest();
-
-            var availableProject = await _context.Projects
-               .Include(p => p.Participants)
-               .AsNoTracking()
-               .FirstOrDefaultAsync(p => p.Id == scrumBoard.BaseBoard.ProjectId &&
-               p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
-            if (availableProject is null)
+            bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(scrumBoard.BaseBoard.ProjectId, _userId, _adminRoles, cancellationToken);
+            if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             BaseBoard newBaseBoard = new()
@@ -150,14 +138,10 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         [HttpPut("updateCanbanBoard")]
-        public async Task<IActionResult> UpdateCanbanBoard(CanbanBoardDTO newCanbanBoard)
+        public async Task<IActionResult> UpdateCanbanBoardAsync(CanbanBoardDTO newCanbanBoard, CancellationToken cancellationToken)
         {
-            var availableProject = await _context.Projects
-                .Include(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == newCanbanBoard.BaseBoard.ProjectId && 
-                    p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
-            if(availableProject is null)
+            bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(newCanbanBoard.BaseBoard.ProjectId, _userId, _adminRoles, cancellationToken);
+            if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             var canbanBoard = await _context.CanbanBoards.FindAsync(newCanbanBoard.Id);
@@ -177,14 +161,10 @@ namespace ProjectManagementSystemBackend.Controllers
             return Ok();
         }
         [HttpPut("updateScrumBoard")]
-        public async Task<IActionResult> UpdateScrumBoard(ScrumBoardDTO newScrumBoard)
+        public async Task<IActionResult> UpdateScrumBoardAsync(ScrumBoardDTO newScrumBoard, CancellationToken cancellationToken)
         {
-            var availableProject = await _context.Projects
-                .Include(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == newScrumBoard.BaseBoard.ProjectId &&
-                    p.Participants.Any(p => p.UserId == _userId && new[] { 1, 2 }.Contains(p.RoleId)));
-            if (availableProject is null)
+            bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(newScrumBoard.BaseBoard.ProjectId, _userId, _adminRoles, cancellationToken);
+            if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             var scrumBoard = await _context.ScrumBoards.FindAsync(newScrumBoard.Id);
@@ -204,15 +184,10 @@ namespace ProjectManagementSystemBackend.Controllers
             return Ok();
         }
         [HttpDelete]
-        public async Task<IActionResult> Delete(int baseBoardId)
+        public async Task<IActionResult> DeleteAsync(int baseBoardId, CancellationToken cancellationToken)
         {
-            var availableBoard = await _context.BaseBoards
-                .Include(p => p.Project)
-                .ThenInclude(p => p.Participants)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(bb => bb.Id == baseBoardId && 
-                    bb.Project.Participants.Any(p => p.UserId == _userId && p.RoleId == 1));
-            if (availableBoard is null)
+            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(baseBoardId, _userId, _ownerRoles, cancellationToken);
+            if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             var baseBoard = await _context.BaseBoards.FindAsync(baseBoardId);

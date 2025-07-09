@@ -7,7 +7,7 @@ using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
 {
-    public class TaskHistoryService : ITaskHistory
+    public class TaskHistoryService : ITaskHistoryService
     {
         ApplicationContext _context;
         public TaskHistoryService(ApplicationContext context) 

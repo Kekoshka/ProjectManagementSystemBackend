@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Mapster;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
+using ProjectManagementSystemBackend.Models.DTO;
 
 namespace ProjectManagementSystemBackend.Controllers
 {
@@ -18,12 +20,13 @@ namespace ProjectManagementSystemBackend.Controllers
             _context = context;
         }
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
-            var roles = await _context.Roles.ToListAsync();
-            if(roles is null)
-                return NotFound();
-            return Ok(roles);
+            var roles = await _context.Roles
+                .AsNoTracking()
+                .ProjectToType<RoleDTO>()
+                .ToListAsync(cancellationToken);
+            return roles is null ? NotFound() : Ok(roles);
         }
     }
 }

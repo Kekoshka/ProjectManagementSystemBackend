@@ -4,7 +4,7 @@ using ProjectManagementSystemBackend.Interfaces;
 
 namespace ProjectManagementSystemBackend.Services
 {
-    public class PasswordHasherService : IPasswordHasher
+    public class PasswordHasherService : IPasswordHasherService
     {
         private readonly int _workFactor = 14;
         public string Hash(string password)
