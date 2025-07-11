@@ -12,5 +12,6 @@ namespace ProjectManagementSystemBackend.Interfaces
         Task<StatusDTO> PostAsync(StatusDTO status, CancellationToken cancellationToken);
         Task UpdateAsync(StatusDTO status, CancellationToken cancellationToken);
         Task DeleteAsync(int boardStatusId, CancellationToken cancellationToken);
+        Task CreateBaseStatusesAsync(int baseBoardId, CancellationToken cancellationToken);
     }
 }
