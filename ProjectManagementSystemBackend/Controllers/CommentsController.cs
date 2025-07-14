@@ -24,6 +24,7 @@ namespace ProjectManagementSystemBackend.Controllers
     {
         ApplicationContext _context;
         IAuthorizationService _authorizationService;
+        ICommentService _commentService;
         
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
@@ -31,9 +32,9 @@ namespace ProjectManagementSystemBackend.Controllers
         int[] _userRoles = [1, 2, 3];
         int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
-        public CommentsController(ApplicationContext context, IAuthorizationService authorizationService) 
+        public CommentsController(ICommentService commentService, IAuthorizationService authorizationService) 
         {
-            _context = context;
+            _commentService = commentService;
             _authorizationService = authorizationService;
         }
         [HttpGet]
@@ -43,24 +44,17 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var comments  = await _context.TaskComments
-                .AsNoTracking()
-                .Where(c => c.TaskId == taskId)
-                .ProjectToType<CommentDTO>()
-                .ToListAsync();
+            var comments = _commentService.GetAsync(taskId, cancellationToken);
             return comments is null ? NotFound() : Ok(comments);
         }
         [HttpPost]
         public async Task<IActionResult> PostAsync(CommentDTO comment, CancellationToken cancellationToken)
         {
-            int participantId = await _authorizationService.AccessAndParticipantByTaskIdAsync(comment.TaskId, _userId, _adminRoles, cancellationToken);
-            if (participantId == 0)
+            bool participantId = await _authorizationService.AccessByTaskIdAsync(comment.TaskId, _userId, _adminRoles, cancellationToken);
+            if (participantId is false)
                 return Unauthorized("You havent access to this action");
 
-            TaskComment newComment = comment.Adapt<TaskComment>();
-            await _context.TaskComments.AddAsync(newComment);
-            await _context.SaveChangesAsync();
-
+            var newComment = _commentService.PostAsync(comment, cancellationToken);
             return Ok(newComment.Id);
         }
         [HttpPut]
@@ -70,13 +64,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var updatedComment = await _context.TaskComments.FindAsync(comment.Id);
-            if (updatedComment is null)
-                return NotFound();
-            updatedComment.Message = comment.Message;
-            await _context.SaveChangesAsync();
-            
-            return NoContent();
+            var newComment = _commentService.UpdateAsync(comment, cancellationToken);
+            return newComment is null ? NotFound() : NoContent();
         }
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int commentId,CancellationToken cancellationToken)
@@ -85,13 +74,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var comment = await _context.TaskComments.FindAsync(commentId);
-            if(comment is null)
-                return NotFound();
-            _context.TaskComments.Remove(comment);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _commentService.DeleteAsync(commentId, cancellationToken);
+                return NoContent();
+            }
+            catch(KeyNotFoundException) { return NotFound(); }
+            catch(Exception) { return StatusCode(500, "Internal server error"); }
         }
     }
 }

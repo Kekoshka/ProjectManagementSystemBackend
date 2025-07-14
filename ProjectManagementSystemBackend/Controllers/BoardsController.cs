@@ -64,8 +64,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var newCanbanBoard = await _boardService.PostCanbanAsync(canbanBoard, cancellationToken);            
-            return Ok(newCanbanBoard);
+            var newCanbanBoard = await _boardService.PostCanbanAsync(canbanBoard, cancellationToken);
+            return newCanbanBoard is null ? NotFound() : Ok(newCanbanBoard);
         }
         [HttpPost("postScrumBoard")]
         public async Task<IActionResult> PostScrumAsync(ScrumBoardDTO scrumBoard, CancellationToken cancellationToken)
@@ -75,7 +75,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 return Unauthorized("You havent access to this action");
 
             var newScrumBoard = await _boardService.PostScrumAsync(scrumBoard, cancellationToken);
-            return Ok(newScrumBoard);
+            return newScrumBoard is null ? NotFound() : Ok(newScrumBoard);
         }
 
         [HttpPut("updateCanbanBoard")]
@@ -123,7 +123,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 return NoContent();
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-            catch (Exception) { return StatusCode(500, "InternalServerError")};
+            catch (Exception) { return StatusCode(500, "InternalServerError"); }
         }
     }
 }
