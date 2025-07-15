@@ -14,21 +14,24 @@ namespace ProjectManagementSystemBackend.Services
         {
             _context = context;
         }
-        public async Task CreateAsync(Models.Task task, int userId)
+        public async Task CreateAsync(Models.Task task, int userId, CancellationToken cancellationToken)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users.FindAsync(userId, cancellationToken);
             if (user is null)
                 return;
-            var responsiblePerson = await _context.Participants.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == task.ResponsiblePersonId);
-            string actionString = $"{user.Name} создал(а) новую задачу с названием '{task.Name}', описанием '{task.Description}' и ответственным '{responsiblePerson.User.Name}'";
+            var responsiblePerson = await _context.Participants
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == task.ResponsiblePersonId, cancellationToken);
+            string actionString = $"{user.Name} создал(а) новую задачу с названием '{task.Name}'," +
+                $" описанием '{task.Description}' и ответственным '{responsiblePerson.User.Name}'";
             
             TaskHistory newTaskHistory = new(DateTime.UtcNow, actionString, userId, task.Id, 1);
-            await _context.TaskHistories.AddAsync(newTaskHistory);
-            await _context.SaveChangesAsync();
+            await _context.TaskHistories.AddAsync(newTaskHistory, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
-        public async Task UpdateAsync(Models.Task oldTask,Models.Task newTask, int userId)
+        public async Task UpdateAsync(Models.Task oldTask,Models.Task newTask, int userId, CancellationToken cancellationToken)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users.FindAsync(userId, cancellationToken);
             if (user is null)
                 return;
             string actionString = $"{user.Name} внес изменения: ";
@@ -48,8 +51,8 @@ namespace ProjectManagementSystemBackend.Services
             }
 
             TaskHistory newTaskHistory = new(DateTime.UtcNow, actionString, userId, oldTask.Id, 2);
-            await _context.TaskHistories.AddAsync(newTaskHistory);
-            await _context.SaveChangesAsync();
+            await _context.TaskHistories.AddAsync(newTaskHistory, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }
