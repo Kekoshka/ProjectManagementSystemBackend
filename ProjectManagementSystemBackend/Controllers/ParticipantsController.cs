@@ -20,6 +20,7 @@ namespace ProjectManagementSystemBackend.Controllers
     {
         ApplicationContext _context;
         IAuthorizationService _authorizationService;
+        IParticipantService _participantService;
 
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
@@ -27,9 +28,9 @@ namespace ProjectManagementSystemBackend.Controllers
         int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
 
-        public ParticipantsController(ApplicationContext context, IAuthorizationService authorizationService) 
+        public ParticipantsController(IParticipantService participantService, IAuthorizationService authorizationService) 
         {
-            _context = context;
+            _participantService = participantService;
             _authorizationService = authorizationService;
         }
 
@@ -40,12 +41,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var participants = await _context.Participants
-                .Include(p => p.User)
-                .Where(p => p.ProjectId == projectId)
-                .ProjectToType<ParticipantDTO>()
-                .ToListAsync(cancellationToken);
-
+            var participants = _participantService.GetAsync(projectId,cancellationToken);
             return participants is null ? NotFound() : Ok(participants);
         }
         [HttpPost]
@@ -54,26 +50,15 @@ namespace ProjectManagementSystemBackend.Controllers
             bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(participant.ProjectId, _userId, _ownerRoles, cancellationToken);
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
+            try
+            {
+                var newParticipant = await _participantService.PostAsync(participant, cancellationToken);
+                return Ok(newParticipant.Id);
+            }
+            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
 
-            if (!_userRoles.Any(r => r == participant.RoleId))
-                return BadRequest("Invalid role id");
-            var existUser = await _context.Users.FindAsync(participant.UserId);
-            if (existUser is null)
-                return BadRequest("Invalid user id");
-
-            var existParticipant = await _context.Participants
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.ProjectId == participant.ProjectId && 
-                    p.UserId == participant.UserId);
-            if (existParticipant is not null)
-                return Conflict("User is already a participant of the project");
-
-            Participant newParticipant = participant.Adapt<Participant>();
-            await _context.Participants.AddAsync(newParticipant);
-            await _context.SaveChangesAsync();
-
-
-            return Ok(newParticipant.Id);
         }
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(ParticipantDTO newParticipant,CancellationToken cancellationToken)
@@ -82,16 +67,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            if (!_userRoles.Any(r => r == newParticipant.RoleId))
-                return BadRequest("Invalid role id");
-
-            var participant = await _context.Participants.FindAsync(newParticipant.Id);
-            if (participant is null)
-                return NotFound($"Participant with id {newParticipant.Id} id not found");
-
-            participant.RoleId = newParticipant.RoleId;
-            await _context.SaveChangesAsync();
-            return NoContent();
+            try
+            {
+                await _participantService.UpdateAsync(newParticipant, cancellationToken);
+                return NoContent();
+            }
+            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int participantId, CancellationToken cancellationToken)
@@ -100,14 +82,14 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var participant = await _context.Participants
-                .FirstOrDefaultAsync(p => p.Id == participantId);
-            if (participant is null)
-                return NotFound();
-            _context.Participants.Remove(participant);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _participantService.DeleteAsync(participantId, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
 
-            return NoContent();
         }
     }
 }

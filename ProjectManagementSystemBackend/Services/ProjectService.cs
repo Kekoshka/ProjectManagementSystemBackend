@@ -1,28 +1,63 @@
-﻿using ProjectManagementSystemBackend.Interfaces;
+﻿using Mapster;
+using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystemBackend.Context;
+using ProjectManagementSystemBackend.Interfaces;
+using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
 {
     public class ProjectService : IProjectService
     {
-        public Task<ProjectDTO> CreateAsync(ProjectDTO project, CancellationToken cancellationToken)
+        ApplicationContext _context;
+        IParticipantService _participantService;
+        TypeAdapterConfig config = new TypeAdapterConfig();
+        public ProjectService(ApplicationContext context, IParticipantService participantService) 
         {
-            throw new NotImplementedException();
+            _context = context;
+            _participantService = participantService;
+        }
+        public async Task<ProjectDTO> CreateAsync(ProjectDTO project, int userId, CancellationToken cancellationToken)
+        {
+            var newProject = project.Adapt<Project>();//Скорее всего не правильно маппится Id
+            await _context.Projects.AddAsync(newProject, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _participantService.CreateBaseParticipantAsync(newProject.Id, userId, cancellationToken);
+
+            return newProject.Adapt<ProjectDTO>();
         }
 
-        public Task DeleteAsync(int projectId, CancellationToken cancellationToken)
+        public async Task DeleteAsync(int projectId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var project = await _context.Projects.FindAsync(projectId,cancellationToken);
+            if (project is null)
+                throw new KeyNotFoundException();
+
+            _context.Remove(project);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public Task<IEnumerable<ProjectDTO>> GetAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<ProjectDTO>> GetAsync(int userId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var projects = await _context.Projects
+                .Include(p => p.Participants)
+                .Where(p => p.Security == false || p.Participants.Any(p => p.UserId == userId))
+                .AsNoTracking()
+                .ProjectToType<ProjectDTO>()
+                .ToListAsync(cancellationToken);
+            return projects;
         }
 
-        public Task UpdateAsync(ProjectDTO project, CancellationToken cancellationToken)
+        public async Task UpdateAsync(ProjectDTO newProject, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == newProject.Id, cancellationToken);
+            if (project is null)
+                throw new KeyNotFoundException();
+
+            project.Adapt<ProjectDTO>(config.Fork(f => f.ForType<Project, ProjectDTO>().Ignore("Id")));
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

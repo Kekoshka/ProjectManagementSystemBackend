@@ -8,8 +8,8 @@ namespace ProjectManagementSystemBackend.Interfaces
 {
     public interface IProjectService
     {
-        Task<IEnumerable<ProjectDTO>> GetAsync(CancellationToken cancellationToken);
-        Task<ProjectDTO> CreateAsync(ProjectDTO project, CancellationToken cancellationToken);
+        Task<IEnumerable<ProjectDTO>> GetAsync(int userId, CancellationToken cancellationToken);
+        Task<ProjectDTO> CreateAsync(ProjectDTO project, int userId, CancellationToken cancellationToken);
         Task UpdateAsync(ProjectDTO project, CancellationToken cancellationToken);
         Task DeleteAsync(int projectId, CancellationToken cancellationToken);
     }

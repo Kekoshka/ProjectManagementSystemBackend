@@ -9,6 +9,7 @@ namespace ProjectManagementSystemBackend.Interfaces
         Task<ParticipantDTO> PostAsync(ParticipantDTO participant, CancellationToken cancellationToken);
         Task UpdateAsync(ParticipantDTO participant, CancellationToken cancellationToken);
         Task DeleteAsync(int participantId, CancellationToken cancellationToken);
+        Task CreateBaseParticipantAsync(int projectId, int userId, CancellationToken cancellationToken);
 
 
     }

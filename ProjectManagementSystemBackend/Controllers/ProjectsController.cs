@@ -19,59 +19,29 @@ namespace ProjectManagementSystemBackend.Controllers
     [Authorize]
     public class ProjectsController : ControllerBase
     {
-        ApplicationContext _context;
         IAuthorizationService _authorizationService;
+        IProjectService _projectService;
 
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         int[] _userRoles = [1, 2, 3];
         int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
-        public ProjectsController(ApplicationContext context, IAuthorizationService authorizationService) 
+        public ProjectsController(IProjectService projectService, IAuthorizationService authorizationService) 
         {
-            _context = context;
+            _projectService = projectService;
             _authorizationService = authorizationService;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAsync()
+        public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
-            var projects = await _context.Projects
-                .Include(p => p.Participants)
-                .Where(p => p.Security == false || p.Participants.Any(p => p.UserId == _userId))
-                .AsNoTracking()
-                .ToListAsync();
-
-            List<ProjectDTO> projectsDTO = projects.Select(p => new ProjectDTO
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                Security = p.Security
-            }).ToList();
-
-            return projects is null ? NotFound() : Ok(projectsDTO);
+            var projects = _projectService.GetAsync(_userId, cancellationToken);
+            return projects is null ? NotFound() : Ok(projects);
         }
         [HttpPost]
-        public async Task<IActionResult> CreateAsync(ProjectDTO project)
+        public async Task<IActionResult> CreateAsync(ProjectDTO project, CancellationToken cancellationToken)
         {
-            Project newProject = new()
-            {
-                Name = project.Name,
-                Description = project.Description,
-                Security = project.Security
-            };
-
-            _context.Projects.Add(newProject);
-            await _context.SaveChangesAsync();
-
-            Participant newParticipant = new()
-            {
-                ProjectId = newProject.Id,
-                UserId = _userId,
-                RoleId = 1
-            };
-            newProject.Participants = [newParticipant];
-            await _context.SaveChangesAsync();
+            var newProject = await _projectService.CreateAsync(project, _userId, cancellationToken);
 
             return Ok(newProject.Id);
         }
@@ -83,16 +53,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorize)
                 return Unauthorized("You havent access to this action");
 
-            var updatingProject = await _context.Projects.FirstOrDefaultAsync(p => p.Id == newProject.Id);
-            if (updatingProject is null)
-                return NotFound();
-
-            updatingProject.Name = newProject.Name;
-            updatingProject.Description = newProject.Description;
-            updatingProject.Security = newProject.Security;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _projectService.UpdateAsync(newProject, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
         [HttpDelete]
@@ -102,13 +69,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var beingDeletedProject = await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
-            if (beingDeletedProject is null)
-                return NotFound();
-
-            _context.Remove(beingDeletedProject);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            try
+            {
+                await _projectService.DeleteAsync(projectId, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
+using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models.DTO;
 
 namespace ProjectManagementSystemBackend.Controllers
@@ -14,18 +15,16 @@ namespace ProjectManagementSystemBackend.Controllers
     [Authorize]
     public class RolesController : ControllerBase
     {
-        ApplicationContext _context;
-        public RolesController(ApplicationContext context) 
+        IRoleService _roleService;
+        public RolesController(IRoleService roleService) 
         {
-            _context = context;
+            _roleService = roleService;
         }
         [HttpGet]
         public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
-            var roles = await _context.Roles
-                .AsNoTracking()
-                .ProjectToType<RoleDTO>()
-                .ToListAsync(cancellationToken);
+            var roles = _roleService.GetAsync(cancellationToken);
+
             return roles is null ? NotFound() : Ok(roles);
         }
     }
