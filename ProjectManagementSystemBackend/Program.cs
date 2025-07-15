@@ -48,6 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddMapster();
+builder.Services.AddSingleton(TypeAdapterConfig.GlobalSettings);
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 builder.Services.AddScoped<ProjectManagementSystemBackend.Interfaces.IAuthenticationService, ProjectManagementSystemBackend.Services.AuthenticationService>();
 builder.Services.AddScoped<ITaskHistoryService, TaskHistoryService>();

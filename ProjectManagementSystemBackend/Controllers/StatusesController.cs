@@ -19,7 +19,7 @@ namespace ProjectManagementSystemBackend.Controllers
     [Authorize]
     public class StatusesController : ControllerBase
     {
-        ApplicationContext _context;
+        IStatusService _statusService;
         IAuthorizationService _authorizationService;
 
         int? userId;
@@ -27,9 +27,9 @@ namespace ProjectManagementSystemBackend.Controllers
         int[] _userRoles = [1, 2, 3];
         int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
-        public StatusesController(ApplicationContext context, IAuthorizationService authorizationService) 
+        public StatusesController(IStatusService statusService, IAuthorizationService authorizationService) 
         {
-            _context = context;
+            _statusService = statusService;
             _authorizationService = authorizationService;
         }
 
@@ -40,12 +40,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorize)
                 return Unauthorized("You havent access to this action");
 
-            var statuses = await _context.BoardStatuses
-                .Include(bs => bs.Status)
-                .Where(bs => bs.BaseBoardId == baseBoardId)
-                .ProjectToType<StatusDTO>()
-                .ToListAsync(cancellationToken);
-
+            var statuses = _statusService.GetAsync(baseBoardId, cancellationToken);
             return statuses is null ? NotFound() : Ok(statuses);
         }
         [HttpPost]
@@ -55,24 +50,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var existsStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == status.Name);
-            if(existsStatus is null)
-            {
-                Status newStatus = new() { Name = status.Name };
-                await _context.Statuses.AddAsync(newStatus,cancellationToken);
-                await _context.SaveChangesAsync(cancellationToken);
-                existsStatus = newStatus;
-            }
-            BoardStatus newBoardStatus = new()
-            {
-                BaseBoardId = status.BaseBoardId,
-                StatusId = existsStatus.Id,
-            };
-            await _context.BoardStatuses.AddAsync(newBoardStatus,cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            StatusDTO newBoardStatusDTO = newBoardStatus.Adapt<StatusDTO>();
-            return Ok(newBoardStatusDTO);
+            var newStatus = await _statusService.PostAsync(status, cancellationToken);
+            return Ok(newStatus);
         }
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(StatusDTO status, CancellationToken cancellationToken)
@@ -81,26 +60,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var updatedStatus = await _context.BoardStatuses.FindAsync(status.Id);
-            if (updatedStatus is null)
-                return NotFound();
-
-                var existedStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == status.Name);
-            if(existedStatus is null)
+            try
             {
-                Status newStatus = new()
-                {
-                    Name = status.Name
-                };
-                await _context.Statuses.AddAsync(newStatus);
-                await _context.SaveChangesAsync();
-                existedStatus = newStatus;
+                await _statusService.UpdateAsync(status, cancellationToken);
+                return NoContent();
             }
-
-            updatedStatus.StatusId = existedStatus.Id;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int boardStatusId, CancellationToken cancellationToken)
@@ -109,13 +75,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)    
                 return Unauthorized("You havent access to this action");
 
-            var status = await _context.BoardStatuses.FindAsync(boardStatusId);
-            if(status is null)
-                return NotFound();
-            _context.BoardStatuses.Remove(status);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _statusService.DeleteAsync(boardStatusId, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
     }
 }
