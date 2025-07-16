@@ -20,7 +20,7 @@ namespace ProjectManagementSystemBackend.Services
         }
         public async Task<ProjectDTO> CreateAsync(ProjectDTO project, int userId, CancellationToken cancellationToken)
         {
-            var newProject = project.Adapt<Project>();//Скорее всего не правильно маппится Id
+            var newProject = project.Adapt<Project>(config.Fork(f => f.ForType<ProjectDTO,Project>().Ignore("Id")));
             await _context.Projects.AddAsync(newProject, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -56,7 +56,7 @@ namespace ProjectManagementSystemBackend.Services
             if (project is null)
                 throw new KeyNotFoundException();
 
-            project.Adapt<ProjectDTO>(config.Fork(f => f.ForType<Project, ProjectDTO>().Ignore("Id")));
+            newProject.Adapt(project, config.Fork(f => f.ForType<Project, ProjectDTO>().Ignore("Id")));
             await _context.SaveChangesAsync(cancellationToken);
         }
     }

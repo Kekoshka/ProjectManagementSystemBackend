@@ -35,7 +35,7 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
-            var projects = _projectService.GetAsync(_userId, cancellationToken);
+            var projects = await _projectService.GetAsync(_userId, cancellationToken);
             return projects is null ? NotFound() : Ok(projects);
         }
         [HttpPost]

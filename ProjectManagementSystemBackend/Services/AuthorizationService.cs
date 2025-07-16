@@ -43,7 +43,7 @@ namespace ProjectManagementSystemBackend.Services
         public async Task<bool> AccessByBoardStatusIdAsync(int boardStatusId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
 
-            var availableBoardStatus = _context.BoardStatuses
+            var availableBoardStatus = await _context.BoardStatuses
                 .Where(bs => availableRolesId.Any(ar => ar == _userRole)
                     ? bs.BaseBoard.Project.Security == false
                         || bs.BaseBoard.Project.Participants.Any(p => p.UserId == userId)

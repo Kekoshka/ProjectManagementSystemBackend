@@ -14,9 +14,12 @@ namespace ProjectManagementSystemBackend.Services
     {
         ApplicationContext _context;
         IStatusService _statusService;
+        TypeAdapterConfig config = new();
+
         public BoardService(ApplicationContext context, IStatusService statusService) 
         {
             _context = context;
+            _statusService = statusService;
         }
 
         
@@ -48,15 +51,14 @@ namespace ProjectManagementSystemBackend.Services
 
         public async Task<CanbanBoardDTO> PostCanbanAsync(CanbanBoardDTO canbanBoard, CancellationToken cancellationToken)
         {
-            BaseBoard newBaseBoard = canbanBoard.BaseBoard.Adapt<BaseBoard>(); //подумать как не мапить id
+            var newBaseBoard = canbanBoard.BaseBoard.Adapt<BaseBoard>(config.Fork(f => f.ForType<BaseBoardDTO, BaseBoard>().Ignore("Id"))); 
             await _context.BaseBoards.AddAsync(newBaseBoard, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
             CanbanBoard newCanbanBoard = new()
             {
-                BaseBoardId = newBaseBoard.Id,
                 TaskLimit = canbanBoard.TaskLimit,
-                BaseBoard = newBaseBoard//Проверить будет ли подсасываться Id если 
+                BaseBoard = newBaseBoard
             }; 
             await _context.CanbanBoards.AddAsync(newCanbanBoard,cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
@@ -68,13 +70,12 @@ namespace ProjectManagementSystemBackend.Services
 
         public async Task<ScrumBoardDTO> PostScrumAsync(ScrumBoardDTO scrumBoard, CancellationToken cancellationToken)
         {
-            BaseBoard newBaseBoard = scrumBoard.BaseBoard.Adapt<BaseBoard>();
+            BaseBoard newBaseBoard = scrumBoard.BaseBoard.Adapt<BaseBoard>(config.Fork(f => f.ForType<BaseBoardDTO, BaseBoard>().Ignore(bb => bb.Id)));
             await _context.BaseBoards.AddAsync(newBaseBoard, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
             ScrumBoard newScrumBoard = new()
             {
-                BaseBoardId = newBaseBoard.Id,
                 TimeLimit = scrumBoard.TimeLimit,
                 BaseBoard = newBaseBoard
             };
@@ -86,14 +87,14 @@ namespace ProjectManagementSystemBackend.Services
 
         public async Task UpdateCanbanBoardAsync(CanbanBoardDTO newCanbanBoard, CancellationToken cancellationToken)
         {
-            var canbanBoard = await _context.CanbanBoards.FindAsync(newCanbanBoard.Id);
+            var canbanBoard = await _context.CanbanBoards.FindAsync(newCanbanBoard.Id,cancellationToken);
             if (canbanBoard is null)
                 throw new KeyNotFoundException($"Not found canban board with {newCanbanBoard.Id} id");
             if (canbanBoard.BaseBoardId != newCanbanBoard.BaseBoardId)
                 throw new InvalidOperationException ($"CanbanBoard doesnt have BaseBoard with {newCanbanBoard.BaseBoardId} id");
             canbanBoard.TaskLimit = newCanbanBoard.TaskLimit;
 
-            var baseBoard = await _context.BaseBoards.FindAsync(newCanbanBoard.BaseBoardId);
+            var baseBoard = await _context.BaseBoards.FindAsync(newCanbanBoard.BaseBoardId,cancellationToken);
             if (baseBoard is null)
                 throw new KeyNotFoundException($"Not found base board with {newCanbanBoard.BaseBoardId} id");
             baseBoard.Name = newCanbanBoard.BaseBoard.Name;
@@ -103,28 +104,28 @@ namespace ProjectManagementSystemBackend.Services
 
         public async Task UpdateScrumBoardAsync(ScrumBoardDTO newScrumBoard, CancellationToken cancellationToken)
         {
-            var scrumBoard = await _context.ScrumBoards.FindAsync(newScrumBoard.Id);
+            var scrumBoard = await _context.ScrumBoards.FindAsync(newScrumBoard.Id,cancellationToken);
             if (scrumBoard is null)
                 throw new KeyNotFoundException($"Not found scrum board with {newScrumBoard.Id} id");
             if (scrumBoard.BaseBoardId != newScrumBoard.BaseBoardId)
                 throw new InvalidOperationException($"CanbanBoard doesnt have BaseBoard with {newScrumBoard.BaseBoardId} id");
             scrumBoard.TimeLimit = newScrumBoard.TimeLimit;
 
-            var baseBoard = await _context.BaseBoards.FindAsync(newScrumBoard.BaseBoardId);
+            var baseBoard = await _context.BaseBoards.FindAsync(newScrumBoard.BaseBoardId, cancellationToken);
             if (baseBoard is null)
             throw new KeyNotFoundException($"Not found base board with {newScrumBoard.BaseBoard.Id} id");
             baseBoard.Name = newScrumBoard.BaseBoard.Name;
             baseBoard.Description = newScrumBoard.BaseBoard.Description;
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
         public async Task DeleteAsync(int baseBoardId, CancellationToken cancellationToken)
         {
-            var baseBoard = await _context.BaseBoards.FindAsync(baseBoardId);
+            var baseBoard = await _context.BaseBoards.FindAsync(baseBoardId,cancellationToken);
             if (baseBoard is null)
                 throw new KeyNotFoundException("Not found base board");
 
-            var scrumBoard = await _context.ScrumBoards.FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId);
-            var canbanBoard = await _context.CanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId);
+            var scrumBoard = await _context.ScrumBoards.FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId, cancellationToken);
+            var canbanBoard = await _context.CanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId, cancellationToken);
 
             if (scrumBoard is null && canbanBoard is null)
                 throw new KeyNotFoundException("Not found scrum and canban boards");
@@ -133,7 +134,7 @@ namespace ProjectManagementSystemBackend.Services
             if (scrumBoard is null)
                 _context.CanbanBoards.Remove(canbanBoard);
             _context.ScrumBoards.Remove(scrumBoard);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
      
     }

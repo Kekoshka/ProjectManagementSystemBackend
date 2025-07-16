@@ -11,6 +11,8 @@ namespace ProjectManagementSystemBackend.Services
     public class CommentService : ICommentService
     {
         ApplicationContext _context;
+        TypeAdapterConfig config = new TypeAdapterConfig();
+
         public CommentService(ApplicationContext context) 
         {
             _context= context;
@@ -31,13 +33,23 @@ namespace ProjectManagementSystemBackend.Services
                 .AsNoTracking()
                 .Where(c => c.TaskId == taskId)
                 .ProjectToType<CommentDTO>()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
             return comments;
         }
 
-        public async Task<CommentDTO> PostAsync(CommentDTO comment, CancellationToken cancellationToken)
+        public async Task<CommentDTO> PostAsync(CommentDTO comment, int userId, CancellationToken cancellationToken)
         {
-            TaskComment newComment = comment.Adapt<TaskComment>();
+            TaskComment newComment = comment.Adapt<TaskComment>(config.Fork(f => f.ForType<CommentDTO,TaskComment>().Ignore("Id")));
+
+            var task = await _context.Tasks
+                .Include(t => t.BoardStatus)
+                .ThenInclude(bs => bs.BaseBoard)
+                .ThenInclude(bb => bb.Project)
+                .ThenInclude(p => p.Participants)
+                .Where(t => t.Id == comment.TaskId &&
+                t.BoardStatus.BaseBoard.Project.Participants.Any(p => p.UserId == userId))
+                .FirstOrDefaultAsync(cancellationToken);
+            newComment.ParticipantId = task.BoardStatus.BaseBoard.Project.Participants.First(p => p.UserId == userId).Id;
             await _context.TaskComments.AddAsync(newComment, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             return newComment.Adapt<CommentDTO>();

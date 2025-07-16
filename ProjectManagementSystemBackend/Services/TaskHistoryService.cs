@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Mapster;
+using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
+using ProjectManagementSystemBackend.Models.DTO;
 using System.Reflection;
 using Task = System.Threading.Tasks.Task;
 
@@ -29,6 +31,17 @@ namespace ProjectManagementSystemBackend.Services
             await _context.TaskHistories.AddAsync(newTaskHistory, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
         }
+
+        public async Task<IEnumerable<TaskHistoryDTO>> GetAsync(int taskId, CancellationToken cancellationToken)
+        {
+
+            var taskHistories = await _context.TaskHistories
+                .ProjectToType<TaskHistoryDTO>()
+                .Where(th => th.TaskId == taskId)
+                .ToListAsync(cancellationToken);
+            return taskHistories;
+        }
+
         public async Task UpdateAsync(Models.Task oldTask,Models.Task newTask, int userId, CancellationToken cancellationToken)
         {
             var user = await _context.Users.FindAsync(userId, cancellationToken);

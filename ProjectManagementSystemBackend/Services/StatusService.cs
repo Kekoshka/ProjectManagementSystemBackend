@@ -30,8 +30,8 @@ namespace ProjectManagementSystemBackend.Services
         {
             var statuses = await _context.BoardStatuses
                             .Include(bs => bs.Status)
-                            .Where(bs => bs.BaseBoardId == baseBoardId)
                             .ProjectToType<StatusDTO>()
+                            .Where(bs => bs.BaseBoardId == baseBoardId)
                             .ToListAsync(cancellationToken);
             return statuses;
         }
@@ -46,6 +46,9 @@ namespace ProjectManagementSystemBackend.Services
                 await _context.SaveChangesAsync(cancellationToken);
                 existsStatus = newStatus;
             }
+            var existsBaseBoard = await _context.BaseBoards.FindAsync(status.BaseBoardId, cancellationToken);
+            if (existsBaseBoard is null)
+                throw new KeyNotFoundException($"BaseBoard with {status.BaseBoardId} id not found");
             BoardStatus newBoardStatus = new()
             {
                 BaseBoardId = status.BaseBoardId,

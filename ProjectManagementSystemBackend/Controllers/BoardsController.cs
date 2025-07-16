@@ -38,9 +38,9 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!IsAuthorize)
                 return Unauthorized("You havent access to this action");
 
-            var boards = _boardService.GetBoardsByProjectIdAsync(projectId, cancellationToken);
+            var boards = await _boardService.GetBoardsByProjectIdAsync(projectId, cancellationToken);
 
-            return boards is null ? NotFound() : Ok(boards);
+            return boards.Count() == 0 || boards is null ? NotFound() : Ok(boards);
         }
         [HttpGet("getBoardByBaseBoardId")]
         public async Task<IActionResult> GetByBaseBoardIdAsync(int baseBoardId, CancellationToken cancellationToken)
@@ -49,7 +49,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!IsAuthorize)
                 return Unauthorized("You havent access to this action");
 
-            object? abstractBoard = _boardService.GetByBaseBoardIdAsync(baseBoardId, cancellationToken);
+            object? abstractBoard = await _boardService.GetByBaseBoardIdAsync(baseBoardId, cancellationToken);
             if (abstractBoard is CanbanBoardDTO cbDTO)
                 return Ok(cbDTO);
             if (abstractBoard is ScrumBoardDTO sbDTO)

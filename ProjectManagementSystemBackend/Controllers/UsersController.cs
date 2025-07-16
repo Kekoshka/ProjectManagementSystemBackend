@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
@@ -14,46 +15,35 @@ namespace ProjectManagementSystemBackend.Controllers
     public class UsersController : ControllerBase
     {
         ApplicationContext _context;
-        IPasswordHasherService _passwordHasherService;
-        IAuthenticationService _authenticationService;
-        public UsersController(ApplicationContext context,IPasswordHasherService passwordHasherService, IAuthenticationService authenticationService)
+        IUserService _userService;
+        public UsersController(ApplicationContext context, IUserService userService)
         {
             _context = context;
-            _passwordHasherService = passwordHasherService;
-            _authenticationService = authenticationService;
+            _userService = userService;
         }
 
         [HttpPost("authorization")]
-        public async Task<IActionResult> AuthorizationAsync(AuthData authData)
+        public async Task<IActionResult> AuthorizationAsync(AuthData authData, CancellationToken cancellationToken)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Login == authData.Login);
-            if (user is null)
-                return Unauthorized("Invalid login or password");
-
-            bool passwordIsValid  =_passwordHasherService.Verify(authData.Password, user.Password);
-            if (!passwordIsValid)
-                return Unauthorized("Invalid login or password");
-
-            var jwt = _authenticationService.GetJWT(user);
-            return Ok(jwt);
+            try
+            {
+                string jwt = await _userService.AuthorizationAsync(authData, cancellationToken);
+                return Ok(jwt);
+            }
+            catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
+        
         }
         [HttpPost("registration")]
-        public async Task<IActionResult> RegistrationAsync(User user)
+        public async Task<IActionResult> RegistrationAsync(User user, CancellationToken cancellationToken)
         {
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Login == user.Login);
-            if (existingUser is not null)
-                return Conflict("user with such data is already exists");
-
-            User newUser = new()
+            try
             {
-                Login = user.Login,
-                Name = user.Name,
-                Password = _passwordHasherService.Hash(user.Password)
-            };
-            await _context.Users.AddAsync(newUser);
-            await _context.SaveChangesAsync();
-            
-            return NoContent();
-        }
+                await _userService.RegistrationAsync(user, cancellationToken);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            }
     }
 }

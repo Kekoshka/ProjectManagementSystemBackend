@@ -44,7 +44,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var comments = _commentService.GetAsync(taskId, cancellationToken);
+            var comments = await _commentService.GetAsync(taskId, cancellationToken);
             return comments is null ? NotFound() : Ok(comments);
         }
         [HttpPost]
@@ -54,7 +54,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (participantId is false)
                 return Unauthorized("You havent access to this action");
 
-            var newComment = _commentService.PostAsync(comment, cancellationToken);
+            var newComment = await _commentService.PostAsync(comment, _userId, cancellationToken);
             return Ok(newComment.Id);
         }
         [HttpPut]
@@ -64,7 +64,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var newComment = _commentService.UpdateAsync(comment, cancellationToken);
+            var newComment = await _commentService.UpdateAsync(comment, cancellationToken);
             return newComment is null ? NotFound() : NoContent();
         }
         [HttpDelete]

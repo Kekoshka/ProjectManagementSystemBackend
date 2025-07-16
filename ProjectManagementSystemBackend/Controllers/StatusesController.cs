@@ -40,7 +40,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorize)
                 return Unauthorized("You havent access to this action");
 
-            var statuses = _statusService.GetAsync(baseBoardId, cancellationToken);
+            var statuses = await _statusService.GetAsync(baseBoardId, cancellationToken);
             return statuses is null ? NotFound() : Ok(statuses);
         }
         [HttpPost]
@@ -50,8 +50,13 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var newStatus = await _statusService.PostAsync(status, cancellationToken);
-            return Ok(newStatus);
+            try
+            {
+                var newStatus = await _statusService.PostAsync(status, cancellationToken);
+                return Ok(newStatus);
+            }
+            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(StatusDTO status, CancellationToken cancellationToken)

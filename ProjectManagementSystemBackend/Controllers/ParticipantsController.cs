@@ -41,7 +41,7 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var participants = _participantService.GetAsync(projectId,cancellationToken);
+            var participants = await _participantService.GetAsync(projectId,cancellationToken);
             return participants is null ? NotFound() : Ok(participants);
         }
         [HttpPost]

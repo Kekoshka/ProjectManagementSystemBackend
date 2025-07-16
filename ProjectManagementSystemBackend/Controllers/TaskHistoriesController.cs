@@ -15,18 +15,18 @@ namespace ProjectManagementSystemBackend.Controllers
     [Authorize]
     public class TaskHistoriesController : ControllerBase
     {
-        ApplicationContext _context;
         IAuthorizationService _authorizationService;
-        
+        ITaskHistoryService _taskHistoryService;
+
         int? userId;
         int[] _userRoles = [1, 2, 3];
         int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-        public TaskHistoriesController(ApplicationContext context, IAuthorizationService authorizationService) 
+        public TaskHistoriesController(ITaskHistoryService taskHistoryService, IAuthorizationService authorizationService) 
         {
-            _context = context;
+            _taskHistoryService = taskHistoryService;
             _authorizationService = authorizationService;
         }
 
@@ -36,10 +36,7 @@ namespace ProjectManagementSystemBackend.Controllers
             bool isAuthorize = await _authorizationService.AccessByTaskIdAsync(taskId, _userId, _userRoles, cancellationToken);
             if(!isAuthorize)
                 return Unauthorized("You havent access to this action");
-
-            var taskHistories = await _context.TaskHistories
-                .Where(th => th.TaskId == taskId)
-                .ToListAsync();
+            var taskHistories = await _taskHistoryService.GetAsync(taskId, cancellationToken);
             return taskHistories is null ? NotFound() : Ok(taskHistories);
         }   
     }

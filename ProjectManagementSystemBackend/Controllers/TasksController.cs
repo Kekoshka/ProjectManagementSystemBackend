@@ -33,13 +33,13 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAsync(int baseBoadrId,CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAsync(int boardStatusId,CancellationToken cancellationToken)
         {
-            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(baseBoadrId, _userId, _userRoles, cancellationToken);
+            bool isAuthorized = await _authorizationService.AccessByBoardStatusIdAsync(boardStatusId, _userId, _userRoles, cancellationToken);
             if(!isAuthorized)    
                 return Unauthorized("You havent access to this action");
 
-            var tasks = _taskService.GetAsync(baseBoadrId, cancellationToken);
+            var tasks = await _taskService.GetAsync(boardStatusId, cancellationToken);
             return tasks is null ? NotFound() : Ok(tasks);
         }
         [HttpPost]
@@ -51,10 +51,10 @@ namespace ProjectManagementSystemBackend.Controllers
 
             try
             {
-                var newTask = await _taskService.PostAsync(task, cancellationToken);
+                var newTask = await _taskService.PostAsync(task, _userId, cancellationToken);
                 return Ok(newTask);
             }
-            catch (InvalidDataException ex) { BadRequest(ex.Message); }
+            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
@@ -72,7 +72,7 @@ namespace ProjectManagementSystemBackend.Controllers
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
             catch (InvalidDataException ex) { return BadRequest(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Interna server error"); }
+            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int taskId,CancellationToken cancellationToken)
@@ -86,7 +86,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _taskService.DeleteAsync(taskId,cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (KeyNotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 

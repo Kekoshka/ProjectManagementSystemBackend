@@ -10,6 +10,7 @@ namespace ProjectManagementSystemBackend.Services
 {
     public class ParticipantService : IParticipantService
     {
+        TypeAdapterConfig config = new TypeAdapterConfig();
         ApplicationContext _context;
         int[] _userRoles = [1, 2, 3];
         int _ownerRole = 1;
@@ -28,7 +29,7 @@ namespace ProjectManagementSystemBackend.Services
                 UserId = userId,
                 RoleId = _ownerRole,
             };
-            await _context.Participants.AddAsync(newParticipant);
+            await _context.Participants.AddAsync(newParticipant, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
         }
 
@@ -67,7 +68,7 @@ namespace ProjectManagementSystemBackend.Services
             if (existParticipant is not null)
                 throw new InvalidOperationException("User is already a participant of the project");
 
-            Participant newParticipant = participant.Adapt<Participant>();
+            Participant newParticipant = participant.Adapt<Participant>(config.Fork(f => f.ForType<ParticipantDTO,Participant>().Ignore("Id").Ignore("User")));
             await _context.Participants.AddAsync(newParticipant, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -79,12 +80,12 @@ namespace ProjectManagementSystemBackend.Services
             if (!_userRoles.Any(r => r == newParticipant.RoleId))
                 throw new InvalidDataException("Invalid role id");
 
-            var participant = await _context.Participants.FindAsync(newParticipant.Id);
+            var participant = await _context.Participants.FindAsync(newParticipant.Id, cancellationToken);
             if (participant is null)
                 throw new InvalidDataException($"Participant with id {newParticipant.Id} id not found");
 
             participant.RoleId = newParticipant.RoleId;
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
      
     }
