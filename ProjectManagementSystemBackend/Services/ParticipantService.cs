@@ -8,6 +8,10 @@ using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
 {
+    /// <summary>
+    /// Сервис для управления участниками
+    /// Позволяет получать, создавать, изменять и удалять участников проектов
+    /// </summary>
     public class ParticipantService : IParticipantService
     {
         TypeAdapterConfig config = new TypeAdapterConfig();
@@ -15,14 +19,27 @@ namespace ProjectManagementSystemBackend.Services
         int[] _userRoles = [1, 2, 3];
         int _ownerRole = 1;
 
+        /// <summary>
+        /// Конструктор сервиса участников проекта 
+        /// </summary>
+        /// <param name="context">Контекст базы данных</param>
         public ParticipantService(ApplicationContext context) 
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Создать базового участника проекта
+        /// </summary>
+        /// <param name="projectId">ID проекта</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <remarks>
+        /// Создает базового участника проекта, вызывается при создании проекта,
+        /// наделяет участника ролью владельца проекта
+        /// </remarks>
         public async Task CreateBaseParticipantAsync(int projectId, int userId, CancellationToken cancellationToken)
         {
-
             Participant newParticipant = new()
             {
                 ProjectId = projectId,
@@ -33,6 +50,12 @@ namespace ProjectManagementSystemBackend.Services
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Удалить участника проекта
+        /// </summary>
+        /// <param name="participantId">ID участника проекта</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <exception cref="KeyNotFoundException">Если участник не был найден</exception>
         public async Task DeleteAsync(int participantId, CancellationToken cancellationToken)
         {
             var participant = await _context.Participants
@@ -43,6 +66,12 @@ namespace ProjectManagementSystemBackend.Services
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Получить участников проекта
+        /// </summary>
+        /// <param name="projectId">ID проекта</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Список участников проекта</returns>
         public async Task<IEnumerable<ParticipantDTO>> GetAsync(int projectId, CancellationToken cancellationToken)
         {
             var participants = await _context.Participants
@@ -53,6 +82,14 @@ namespace ProjectManagementSystemBackend.Services
             return participants;
         }
 
+        /// <summary>
+        /// Создать нового участника проекта
+        /// </summary>
+        /// <param name="participant">DTO с данными нового участника проекта</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>DTO с данными созданного участника проекта</returns>
+        /// <exception cref="InvalidDataException">Если был передан несуществующий Id пользователя или роли</exception>
+        /// <exception cref="InvalidOperationException">Если пользователь уже является участником проекта</exception>
         public async Task<ParticipantDTO> PostAsync(ParticipantDTO participant, CancellationToken cancellationToken)
         {
             if (!_userRoles.Any(r => r == participant.RoleId))
@@ -75,6 +112,15 @@ namespace ProjectManagementSystemBackend.Services
             return newParticipant.Adapt<ParticipantDTO>();
         }
 
+        /// <summary>
+        /// Обновить данные участника проекта
+        /// </summary>
+        /// <param name="newParticipant">DTO с обновленными данными участника</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <remarks>
+        /// Обновлет данные о роли участника проекта
+        /// </remarks>
+        /// <exception cref="InvalidDataException">Если передан неверный ID роли или участника</exception>
         public async Task UpdateAsync(ParticipantDTO newParticipant, CancellationToken cancellationToken)
         {
             if (!_userRoles.Any(r => r == newParticipant.RoleId))

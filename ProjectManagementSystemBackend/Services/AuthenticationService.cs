@@ -27,6 +27,10 @@ namespace ProjectManagementSystemBackend.Services
         /// </summary>
         /// <param name="user">Данные пользователя</param>
         /// <returns>JWT токен для дальнейшей авторизации</returns>
+        /// <remarks>
+        /// JWT токен выдается на 60 минут
+        /// В токене хранятся данные о ID и имени пользователя, 
+        /// </remarks>
         public string GetJWT(User user)
         {
             List<Claim> claims = new List<Claim>

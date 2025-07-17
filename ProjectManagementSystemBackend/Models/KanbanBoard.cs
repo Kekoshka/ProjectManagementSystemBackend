@@ -1,22 +1,21 @@
 ﻿namespace ProjectManagementSystemBackend.Models
 {
     /// <summary>
-    /// Scrum доска проекта
+    /// Канбан доска, дочерняя сущность базовой доски
     /// </summary>
     /// <remarks>
-    /// Используется для организации работы по методологии Scrum.
-    /// Содержит временные ограничения для спринтов.
+    /// Хранит в себе свойства присущие Kanban доскам
     /// </remarks>
-    public class ScrumBoard
+    public class KanbanBoard
     {
         /// <summary>
-        /// Уникальный идентификатор Scrum доски
+        /// Уникальный идентификатор Kanban доски
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Временное ограничение на выполнение задач у данной доски
+        /// Лимит задач доски
         /// </summary>
-        public DateTime TimeLimit { get; set; }
+        public int TaskLimit { get; set; }
         /// <summary>
         /// Код базовой доски
         /// </summary>

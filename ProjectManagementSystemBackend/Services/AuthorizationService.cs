@@ -8,6 +8,13 @@ using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthori
 
 namespace ProjectManagementSystemBackend.Services
 {
+    /// <summary>
+    /// Сервис авторизации и проверки прав доступа
+    /// </summary>
+    /// <remarks>
+    /// Предоставляет методы для проверки прав пользователей на выполнение операций
+    /// с различными сущностями системы (проектами, досками, задачами и т.д.)
+    /// </remarks>
     public class AuthorizationService : IAuthorizationService
     {
         ApplicationContext _context;
@@ -18,12 +25,29 @@ namespace ProjectManagementSystemBackend.Services
         /// <summary>
         /// Конструктор сервиса авторизации
         /// </summary>
-        /// <param name="context">Сервис контекста</param>
+        /// <param name="context">Контекст базы данных</param>
         public AuthorizationService(ApplicationContext context) 
         {
             _context = context;
         }
-
+        /// <summary>
+        /// Проверить доступ к доске по ID
+        /// </summary>
+        /// <param name="boardId">ID доски</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="availableRolesId">Массив разрешенных ролей</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>
+        /// True - если доступ разрешен, 
+        /// False - если доступ запрещен
+        /// </returns>
+        /// <remarks>
+        /// Логика проверки:
+        /// 1. Для обычных пользователей: доступ разрешен, если проект публичный
+        ///    или пользователь является участником проекта
+        /// 2. Для администраторов/владельцев: доступ разрешен, если пользователь имеет
+        ///    соответствующую роль в проекте
+        /// </remarks>
         public async Task<bool> AccessByBoardIdAsync    (int boardId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
             var availableBoard = await _context.BaseBoards
@@ -45,6 +69,24 @@ namespace ProjectManagementSystemBackend.Services
             return availableBoard is null ? false : true;
         }
 
+        /// <summary>
+        /// Проверить доступ к статусу доски по ID
+        /// </summary>
+        /// <param name="boardStatusId">ID статуса доски</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="availableRolesId">Массив разрешенных ролей</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>
+        /// True - если доступ разрешен, 
+        /// False - если доступ запрещен
+        /// </returns>
+        /// <remarks>
+        /// Логика проверки:
+        /// 1. Для обычных пользователей: доступ разрешен, если проект публичный
+        ///    или пользователь является участником проекта
+        /// 2. Для администраторов/владельцев: доступ разрешен, если пользователь имеет
+        ///    соответствующую роль в проекте        
+        /// </remarks>
         public async Task<bool> AccessByBoardStatusIdAsync(int boardStatusId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
 
@@ -72,6 +114,20 @@ namespace ProjectManagementSystemBackend.Services
             return availableBoardStatus is null ? false : true;
         }
 
+        /// <summary>
+        /// Проверить доступ к комментарию по ID
+        /// </summary>
+        /// <param name="commentId">ID комментария</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>
+        /// True - если пользователь является автором комментария,
+        /// False - в противном случае
+        /// </returns>
+        /// <remarks>
+        /// Логика проверки:
+        /// Доступ разрешен если пользователь является создателем комментария
+        /// </remarks>
         public async Task<bool> AccessByCommentIdAsync(int commentId, int userId, CancellationToken cancellationToken)
         {
             var availableComment = await _context.TaskComments
@@ -81,6 +137,24 @@ namespace ProjectManagementSystemBackend.Services
             return availableComment is null ? false : true;
         }
 
+        /// <summary>
+        /// Проверить доступ к проекту по ID
+        /// </summary>
+        /// <param name="projectId">ID проекта</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="availableRolesId">Массив разрешенных ролей</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>
+        /// True - если доступ разрешен,
+        /// False - если доступ запрещен
+        /// </returns>
+        /// <remarks>
+        /// Логика проверки:
+        /// 1. Для обычных пользователей: доступ разрешен, если проект публичный
+        ///    или пользователь является участником проекта
+        /// 2. Для администраторов/владельцев: доступ разрешен, если пользователь имеет
+        ///    соответствующую роль в проекте
+        /// </remarks>
         public async Task<bool> AccessByProjectIdAsync(int projectId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
             var availableProject = await _context.Projects
@@ -94,6 +168,24 @@ namespace ProjectManagementSystemBackend.Services
             return availableProject is null ? false : true;
         }
 
+        /// <summary>
+        /// Проверить доступ к задаче по ID
+        /// </summary>
+        /// <param name="taskId">ID задачи</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="availableRolesId">Массив разрешенных ролей</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>
+        /// True - если доступ разрешен,
+        /// False - если доступ запрещен
+        /// </returns>
+        /// <remarks>
+        /// Логика проверки через связь задачи с проектом:
+        /// 1. Для обычных пользователей: доступ разрешен, если проект публичный
+        ///    или пользователь является участником проекта
+        /// 2. Для администраторов/владельцев: доступ разрешен, если пользователь имеет
+        ///    соответствующую роль в проекте
+        /// </remarks>
         public async Task<bool> AccessByTaskIdAsync(int taskId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
             var availableTask = await _context.Tasks
@@ -120,6 +212,25 @@ namespace ProjectManagementSystemBackend.Services
                 .FirstOrDefaultAsync(cancellationToken);
             return availableTask is null ? false : true;
         }
+
+        /// <summary>
+        /// Проверить доступ к участнику проекта по ID
+        /// </summary>
+        /// <param name="participantId">ID участника проекта</param>
+        /// <param name="userId">ID пользователя</param>
+        /// <param name="availableRolesId">Массив разрешенных ролей</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>
+        /// True - если доступ разрешен,
+        /// False - если доступ запрещен
+        /// </returns>
+        /// <remarks>
+        /// Логика проверки через связь участника с проектом:
+        /// 1. Для обычных пользователей: доступ разрешен, если проект публичный
+        ///    или пользователь является участником проекта
+        /// 2. Для администраторов/владельцев: доступ разрешен, если пользователь имеет
+        ///    соответствующую роль в проекте
+        /// </remarks>
         public async Task<bool> AccessByParticipantIdAsync(int participantId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
             var availableParticipant = await _context.Participants

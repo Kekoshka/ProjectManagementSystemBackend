@@ -10,19 +10,36 @@ using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
 {
+    /// <summary>
+    /// Сервис для работы с досками проектов (Kanban и Scrum)
+    /// </summary>
+    /// <remarks>
+    /// Предоставляет функционал для создания, получения, обновления и удаления досок проектов.
+    /// Поддерживает два типа досок: Kanban и Scrum.
+    /// </remarks>
     public class BoardService : IBoardService
     {
         ApplicationContext _context;
         IStatusService _statusService;
         TypeAdapterConfig config = new();
 
+        /// <summary>
+        /// Конструктор сервиса досок
+        /// </summary>
+        /// <param name="context">Контекст базы данных</param>
+        /// <param name="statusService">Сервис для работы со статусами</param>
         public BoardService(ApplicationContext context, IStatusService statusService) 
         {
             _context = context;
             _statusService = statusService;
         }
 
-        
+        /// <summary>
+        /// Получить все базовые доски проекта
+        /// </summary>
+        /// <param name="projectId">ID проекта</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Список базовых досок проекта</returns>
         public async Task<IEnumerable<BaseBoardDTO>> GetBoardsByProjectIdAsync(int projectId, CancellationToken cancellationToken)
         {
             var boards = await _context.BaseBoards
@@ -33,6 +50,15 @@ namespace ProjectManagementSystemBackend.Services
             return boards;
         }
 
+        /// <summary>
+        /// Получить доску по ID базовой доски
+        /// </summary>
+        /// <param name="baseBoardId">ID базовой доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>
+        /// Объект доски (ScrumBoardDTO или KanbanBoardDTO), 
+        /// либо null если доска не найдена
+        /// </returns>
         public async Task<object?> GetByBaseBoardIdAsync(int baseBoardId, CancellationToken cancellationToken)
         {
             var scrumBoard = await _context.ScrumBoards
@@ -42,32 +68,56 @@ namespace ProjectManagementSystemBackend.Services
             if (scrumBoard is not null)
                 return scrumBoard;
 
-            var canbanBoard = await _context.CanbanBoards
+            var kanbanBoard = await _context.KanbanBoards
                 .AsNoTracking()
-                .ProjectToType<CanbanBoardDTO>()
+                .ProjectToType<KanbanBoardDTO>()
                 .FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId, cancellationToken);
-            return canbanBoard is null ? null : canbanBoard;
+            return kanbanBoard is null ? null : kanbanBoard;
         }
 
-        public async Task<CanbanBoardDTO> PostCanbanAsync(CanbanBoardDTO canbanBoard, CancellationToken cancellationToken)
+        /// <summary>
+        /// Создать новую Kanban доску
+        /// </summary>
+        /// <param name="kanbanBoard">DTO с данными для создания Kanban доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Созданная Kanban доска</returns>
+        /// <remarks>
+        /// Создает:
+        /// 1. Базовую доску
+        /// 2. Kanban доску
+        /// 3. Базовые статусы для доски
+        /// </remarks>
+        public async Task<KanbanBoardDTO> PostKanbanAsync(KanbanBoardDTO kanbanBoard, CancellationToken cancellationToken)
         {
-            var newBaseBoard = canbanBoard.BaseBoard.Adapt<BaseBoard>(config.Fork(f => f.ForType<BaseBoardDTO, BaseBoard>().Ignore("Id"))); 
+            var newBaseBoard = kanbanBoard.BaseBoard.Adapt<BaseBoard>(config.Fork(f => f.ForType<BaseBoardDTO, BaseBoard>().Ignore("Id"))); 
             await _context.BaseBoards.AddAsync(newBaseBoard, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            CanbanBoard newCanbanBoard = new()
+            KanbanBoard newKanbanBoard = new()
             {
-                TaskLimit = canbanBoard.TaskLimit,
+                TaskLimit = kanbanBoard.TaskLimit,
                 BaseBoard = newBaseBoard
             }; 
-            await _context.CanbanBoards.AddAsync(newCanbanBoard,cancellationToken);
+            await _context.KanbanBoards.AddAsync(newKanbanBoard,cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
             await _statusService.CreateBaseStatusesAsync(newBaseBoard.Id, cancellationToken);
 
-            return newCanbanBoard.Adapt<CanbanBoardDTO>();
+            return newKanbanBoard.Adapt<KanbanBoardDTO>();
         }
 
+        /// <summary>
+        /// Создать новую Scrum доску
+        /// </summary>
+        /// <param name="scrumBoard">DTO с данными для создания Scrum доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Созданная Scrum доска</returns>
+        /// <remarks>
+        /// Создает:
+        /// 1. Базовую доску
+        /// 2. Scrum доску
+        /// 3. Базовые статусы для доски
+        /// </remarks>
         public async Task<ScrumBoardDTO> PostScrumAsync(ScrumBoardDTO scrumBoard, CancellationToken cancellationToken)
         {
             BaseBoard newBaseBoard = scrumBoard.BaseBoard.Adapt<BaseBoard>(config.Fork(f => f.ForType<BaseBoardDTO, BaseBoard>().Ignore(bb => bb.Id)));
@@ -82,33 +132,67 @@ namespace ProjectManagementSystemBackend.Services
             await _context.ScrumBoards.AddAsync(newScrumBoard, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
+            await _statusService.CreateBaseStatusesAsync(newBaseBoard.Id, cancellationToken);
+
             return newScrumBoard.Adapt<ScrumBoardDTO>();
         }
 
-        public async Task UpdateCanbanBoardAsync(CanbanBoardDTO newCanbanBoard, CancellationToken cancellationToken)
+        /// <summary>
+        /// Обновить Kanban доску
+        /// </summary>
+        /// <param name="newKanbanBoard">DTO с обновленными данными Kanban доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <remarks>
+        /// Обновляет:
+        /// 1. Параметры Kanban доски (лимит задач)
+        /// 2. Данные базовой доски (название, описание)
+        /// </remarks>
+        /// <exception cref="KeyNotFoundException">
+        /// Если Kanban доска или базовая доска не найдены
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Если ID базовой доски не соответствует доске
+        /// </exception>
+        public async Task UpdateKanbanBoardAsync(KanbanBoardDTO newKanbanBoard, CancellationToken cancellationToken)
         {
-            var canbanBoard = await _context.CanbanBoards.FindAsync(newCanbanBoard.Id,cancellationToken);
-            if (canbanBoard is null)
-                throw new KeyNotFoundException($"Not found canban board with {newCanbanBoard.Id} id");
-            if (canbanBoard.BaseBoardId != newCanbanBoard.BaseBoardId)
-                throw new InvalidOperationException ($"CanbanBoard doesnt have BaseBoard with {newCanbanBoard.BaseBoardId} id");
-            canbanBoard.TaskLimit = newCanbanBoard.TaskLimit;
+            var kanbanBoard = await _context.KanbanBoards.FindAsync(newKanbanBoard.Id,cancellationToken);
+            if (kanbanBoard is null)
+                throw new KeyNotFoundException($"Not found kanban board with {newKanbanBoard.Id} id");
+            if (kanbanBoard.BaseBoardId != newKanbanBoard.BaseBoardId)
+                throw new InvalidOperationException ($"KanbanBoard doesnt have BaseBoard with {newKanbanBoard.BaseBoardId} id");
+            kanbanBoard.TaskLimit = newKanbanBoard.TaskLimit;
 
-            var baseBoard = await _context.BaseBoards.FindAsync(newCanbanBoard.BaseBoardId,cancellationToken);
+            var baseBoard = await _context.BaseBoards.FindAsync(newKanbanBoard.BaseBoardId,cancellationToken);
             if (baseBoard is null)
-                throw new KeyNotFoundException($"Not found base board with {newCanbanBoard.BaseBoardId} id");
-            baseBoard.Name = newCanbanBoard.BaseBoard.Name;
-            baseBoard.Description = newCanbanBoard.BaseBoard.Description;
+                throw new KeyNotFoundException($"Not found base board with {newKanbanBoard.BaseBoardId} id");
+            baseBoard.Name = newKanbanBoard.BaseBoard.Name;
+            baseBoard.Description = newKanbanBoard.BaseBoard.Description;
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Обновить Scrum доску
+        /// </summary>
+        /// <param name="newScrumBoard">DTO с обновленными данными Scrum доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <remarks>
+        /// Обновляет:
+        /// 1. Параметры Scrum доски (временной лимит)
+        /// 2. Данные базовой доски (название, описание)
+        /// </remarks>
+        /// <exception cref="KeyNotFoundException">
+        /// Если Scrum доска или базовая доска не найдены
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Если ID базовой доски не соответствует доске
+        /// </exception>
         public async Task UpdateScrumBoardAsync(ScrumBoardDTO newScrumBoard, CancellationToken cancellationToken)
         {
             var scrumBoard = await _context.ScrumBoards.FindAsync(newScrumBoard.Id,cancellationToken);
             if (scrumBoard is null)
                 throw new KeyNotFoundException($"Not found scrum board with {newScrumBoard.Id} id");
             if (scrumBoard.BaseBoardId != newScrumBoard.BaseBoardId)
-                throw new InvalidOperationException($"CanbanBoard doesnt have BaseBoard with {newScrumBoard.BaseBoardId} id");
+                throw new InvalidOperationException($"KanbanBoard doesnt have BaseBoard with {newScrumBoard.BaseBoardId} id");
             scrumBoard.TimeLimit = newScrumBoard.TimeLimit;
 
             var baseBoard = await _context.BaseBoards.FindAsync(newScrumBoard.BaseBoardId, cancellationToken);
@@ -118,6 +202,19 @@ namespace ProjectManagementSystemBackend.Services
             baseBoard.Description = newScrumBoard.BaseBoard.Description;
             await _context.SaveChangesAsync(cancellationToken);
         }
+        /// <summary>
+        /// Удалить доску
+        /// </summary>
+        /// <param name="baseBoardId">ID базовой доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <remarks>
+        /// Удаляет:
+        /// 1. Базовую доску
+        /// 2. Привязанную доску (Kanban или Scrum)
+        /// </remarks>
+        /// <exception cref="KeyNotFoundException">
+        /// Если базовая доска или связанные доски не найдены
+        /// </exception>
         public async Task DeleteAsync(int baseBoardId, CancellationToken cancellationToken)
         {
             var baseBoard = await _context.BaseBoards.FindAsync(baseBoardId,cancellationToken);
@@ -125,17 +222,16 @@ namespace ProjectManagementSystemBackend.Services
                 throw new KeyNotFoundException("Not found base board");
 
             var scrumBoard = await _context.ScrumBoards.FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId, cancellationToken);
-            var canbanBoard = await _context.CanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId, cancellationToken);
+            var kanbanBoard = await _context.KanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId, cancellationToken);
 
-            if (scrumBoard is null && canbanBoard is null)
-                throw new KeyNotFoundException("Not found scrum and canban boards");
+            if (scrumBoard is null && kanbanBoard is null)
+                throw new KeyNotFoundException("Not found scrum and Kanban boards");
 
             _context.BaseBoards.Remove(baseBoard);
             if (scrumBoard is null)
-                _context.CanbanBoards.Remove(canbanBoard);
+                _context.KanbanBoards.Remove(kanbanBoard);
             _context.ScrumBoards.Remove(scrumBoard);
             await _context.SaveChangesAsync(cancellationToken);
         }
-     
     }
 }

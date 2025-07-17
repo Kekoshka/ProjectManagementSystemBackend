@@ -95,7 +95,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 return Unauthorized("You havent access to this action");
 
             object? abstractBoard = await _boardService.GetByBaseBoardIdAsync(baseBoardId, cancellationToken);
-            if (abstractBoard is CanbanBoardDTO cbDTO)
+            if (abstractBoard is KanbanBoardDTO cbDTO)
                 return Ok(cbDTO);
             if (abstractBoard is ScrumBoardDTO sbDTO)
                 return Ok(sbDTO);
@@ -106,14 +106,14 @@ namespace ProjectManagementSystemBackend.Controllers
         /// <summary>
         /// Создать новую Kanban доску
         /// </summary>
-        /// <param name="canbanBoard">Данные для создания доски</param>
+        /// <param name="kanbanBoard">Данные для создания доски</param>
         /// <param name="cancellationToken">Токен отмены</param>
         /// <returns>Созданная Kanban доска</returns>
         /// <remarks>
         /// Для создания доски пользователь должен быть участником проекта и иметь роль администратора и выше
         /// 
         /// Пример запроса:
-        /// POST /api/boards/postCanbanBoard
+        /// POST /api/boards/postKanbanBoard
         /// {
         ///     "id": 0,
         ///     "taskLimit": 11,
@@ -129,15 +129,15 @@ namespace ProjectManagementSystemBackend.Controllers
         /// </remarks>
         /// <response code="200">Возвращает созданную Kanban доску</response>
         /// <response code="401">Недостаточно прав для создания доски</response>
-        [HttpPost("postCanbanBoard")]
-        public async Task<IActionResult> PostCanbanAsync(CanbanBoardDTO canbanBoard, CancellationToken cancellationToken)
+        [HttpPost("postKanbanBoard")]
+        public async Task<IActionResult> PostKanbanAsync(KanbanBoardDTO kanbanBoard, CancellationToken cancellationToken)
         {
-            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(canbanBoard.BaseBoard.Id, _userId, _adminRoles, cancellationToken);
+            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(kanbanBoard.BaseBoard.Id, _userId, _adminRoles, cancellationToken);
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            var newCanbanBoard = await _boardService.PostCanbanAsync(canbanBoard, cancellationToken);
-            return Ok(newCanbanBoard);
+            var newKanbanBoard = await _boardService.PostKanbanAsync(kanbanBoard, cancellationToken);
+            return Ok(newKanbanBoard);
         }
 
         /// <summary>
@@ -179,16 +179,16 @@ namespace ProjectManagementSystemBackend.Controllers
         }
 
         /// <summary>
-        /// Обновить Canban доску
+        /// Обновить Kanban доску
         /// </summary>
-        /// <param name="newCanbanBoard">Новые данные доски</param>
+        /// <param name="newKanbanBoard">Новые данные доски</param>
         /// <param name="cancellationToken">Токен отмены</param>
         /// <returns>Статус операции</returns>
         /// <remarks>
         /// 
         /// 
         /// Пример запроса:
-        /// PUT /api/Boards/updateCanbanBoard
+        /// PUT /api/Boards/updateKanbanBoard
         /// {
         ///     "id": 11,
         ///     "taskLimit": 11,
@@ -207,16 +207,16 @@ namespace ProjectManagementSystemBackend.Controllers
         /// <response code="404">Доска не найдена</response>
         /// <response code="422">Несоответствие данных (например, неверный projectId)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
-        [HttpPut("updateCanbanBoard")]
-        public async Task<IActionResult> UpdateCanbanBoardAsync(CanbanBoardDTO newCanbanBoard, CancellationToken cancellationToken)
+        [HttpPut("updateKanbanBoard")]
+        public async Task<IActionResult> UpdateKanbanBoardAsync(KanbanBoardDTO newKanbanBoard, CancellationToken cancellationToken)
         {
-            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(newCanbanBoard.BaseBoard.Id, _userId, _adminRoles, cancellationToken);
+            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(newKanbanBoard.BaseBoard.Id, _userId, _adminRoles, cancellationToken);
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
             try
             {
-                await _boardService.UpdateCanbanBoardAsync(newCanbanBoard, cancellationToken);   
+                await _boardService.UpdateKanbanBoardAsync(newKanbanBoard, cancellationToken);   
                 return NoContent();
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

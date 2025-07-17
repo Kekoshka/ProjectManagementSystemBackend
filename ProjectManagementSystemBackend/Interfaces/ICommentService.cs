@@ -9,7 +9,7 @@ namespace ProjectManagementSystemBackend.Interfaces
     {
         Task<IEnumerable<CommentDTO?>> GetAsync(int taskId, CancellationToken cancellationToken);
         Task<CommentDTO> PostAsync(CommentDTO comment, int userId, CancellationToken cancellationToken);
-        Task<CommentDTO> UpdateAsync(CommentDTO comment, CancellationToken cancellationToken);
+        Task UpdateAsync(CommentDTO comment, CancellationToken cancellationToken);
         Task DeleteAsync(int commentId, CancellationToken cancellationToken);
     }
 }

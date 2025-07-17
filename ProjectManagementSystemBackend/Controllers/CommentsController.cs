@@ -132,9 +132,13 @@ namespace ProjectManagementSystemBackend.Controllers
             bool isAuthorized = await _authorizationService.AccessByCommentIdAsync(comment.Id, _userId, cancellationToken);
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
-
-            var newComment = await _commentService.UpdateAsync(comment, cancellationToken);
-            return newComment is null ? NotFound() : NoContent();
+            try
+            {
+                await _commentService.UpdateAsync(comment, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (Exception) { return StatusCode(500, "Internal server error");  }
         }
         /// <summary>
         /// Удалить комментарий

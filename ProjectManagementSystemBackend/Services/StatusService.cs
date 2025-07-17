@@ -8,15 +8,32 @@ using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
 {
+    /// <summary>
+    /// Сервис для управления статусами досок
+    /// </summary>
+    /// <remarks>
+    /// Позволяет получать, создавать, изменять и удалять статусы досок
+    /// </remarks>
     public class StatusService : IStatusService
     {
         ApplicationContext _context;
         TypeAdapterConfig config = new TypeAdapterConfig();
-
+        
+        /// <summary>
+        /// Конструктор сервиса статусов
+        /// </summary>
+        /// <param name="context">Контекст базы данных</param>
         public StatusService(ApplicationContext context)
         {
             _context = context;
         }
+
+        /// <summary>
+        /// Удалить статус доски
+        /// </summary>
+        /// <param name="boardStatusId">ID статуса доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <exception cref="KeyNotFoundException">Если статус доски не найден </exception>
         public async Task DeleteAsync(int boardStatusId, CancellationToken cancellationToken)
         {
             var status = await _context.BoardStatuses.FindAsync(boardStatusId, cancellationToken);
@@ -26,6 +43,12 @@ namespace ProjectManagementSystemBackend.Services
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Получить статусы доски
+        /// </summary>
+        /// <param name="baseBoardId">ID базовой доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Список DTO статусов доски</returns>
         public async Task<IEnumerable<StatusDTO>> GetAsync(int baseBoardId, CancellationToken cancellationToken)
         {
             var statuses = await _context.BoardStatuses
@@ -35,7 +58,17 @@ namespace ProjectManagementSystemBackend.Services
                             .ToListAsync(cancellationToken);
             return statuses;
         }
-
+        /// <summary>
+        /// Опубликовать новый статус доски
+        /// </summary>
+        /// <param name="status">DTO с данными нового статуса доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>DTO с данными созданого статуса доски</returns>
+        /// <remarks>
+        /// Проверяет существует ли статус с переданным названием,
+        /// если статуса с таким названием нет то создается новый статус, после чего создается статус доски
+        /// </remarks>
+        /// <exception cref="KeyNotFoundException">Если базовая доска не была найдена</exception>
         public async Task<StatusDTO> PostAsync(StatusDTO status, CancellationToken cancellationToken)
         {
             var existsStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == status.Name, cancellationToken);
@@ -60,6 +93,16 @@ namespace ProjectManagementSystemBackend.Services
             return newBoardStatus.Adapt<StatusDTO>();
         }
 
+        /// <summary>
+        /// Обновить статус доски
+        /// </summary>
+        /// <param name="status">DTO с одновленными данными статуса доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>
+        /// Проверяет существует ли статус с переданным названием,
+        /// если статуса с таким названием нет то создается новый статус, после чего обновляется статус доски
+        /// </returns>
+        /// <exception cref="KeyNotFoundException">Если статус не найден </exception>
         public async Task UpdateAsync(StatusDTO status, CancellationToken cancellationToken)
         {
             var updatedStatus = await _context.BoardStatuses.FindAsync(status.Id, cancellationToken);
@@ -77,6 +120,15 @@ namespace ProjectManagementSystemBackend.Services
             updatedStatus.StatusId = existedStatus.Id;
             await _context.SaveChangesAsync(cancellationToken);
         }
+        /// <summary>
+        /// Создать стандартные статусы доски 
+        /// </summary>
+        /// <param name="baseBoardId">ID базовой доски</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <remarks>
+        /// Создает стандартные статусы для переданной базовой доски, а именно:
+        /// новые, в работе, проверяются, готовые
+        /// </remarks>
         public async Task CreateBaseStatusesAsync(int baseBoardId, CancellationToken cancellationToken)
         {
             List<BoardStatus> newBoardStatuses = [

@@ -1,6 +1,6 @@
 ﻿namespace ProjectManagementSystemBackend.Models.DTO
 {
-    public class CanbanBoardDTO
+    public class KanbanBoardDTO
     {
         public int Id { get; set; }
         public int TaskLimit { get; set; }

@@ -4,8 +4,15 @@ using ProjectManagementSystemBackend.Models.DTO;
 
 namespace ProjectManagementSystemBackend.Common
 {
+    /// <summary>
+    /// Класс, хранящий конфигурацию для Mapster
+    /// </summary>
     public class MapsterConfig : IRegister
     {
+        /// <summary>
+        /// Задает конфигурацию для Mapster
+        /// </summary>
+        /// <param name="config">Параметры конфигурации</param>
         public void Register(TypeAdapterConfig config)
         {
             config.NewConfig<BoardStatus, StatusDTO>()
