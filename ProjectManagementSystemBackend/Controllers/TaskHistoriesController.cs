@@ -10,6 +10,13 @@ using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthori
 
 namespace ProjectManagementSystemBackend.Controllers
 {
+    /// <summary>
+    /// Контроллер для просмотра истории задач
+    /// </summary>
+    /// <remarks>
+    /// Позволяет получать данные о истории задачи
+    /// Требует авторизации и соответствующих прав доступа
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -24,12 +31,33 @@ namespace ProjectManagementSystemBackend.Controllers
         int[] _ownerRoles = [1];
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
+        /// <summary>
+        /// Конструктор контроллера истории задач
+        /// </summary>
+        /// <param name="taskHistoryService">Сервис для работы с историей задач</param>
+        /// <param name="authorizationService">Сервис авторизации</param>
         public TaskHistoriesController(ITaskHistoryService taskHistoryService, IAuthorizationService authorizationService) 
         {
             _taskHistoryService = taskHistoryService;
             _authorizationService = authorizationService;
         }
 
+        /// <summary>
+        /// Получить историю для указанной задачи
+        /// </summary>
+        /// <param name="taskId">ID задачи</param>
+        /// <param name="cancellationToken">Токен отмены операции</param>
+        /// <returns>Список истории измененений задачи</returns>
+        /// <remarks>
+        /// Возвращает хронологический список всех изменений задачи.
+        /// Для получения истории задачи проект должен быть публичным или пользователь должен быть участником проекта
+        /// 
+        /// Пример запроса:
+        /// GET /api/Taskhistories?taskId=11
+        /// </remarks>
+        /// <response code="200">История изменений успешно получена</response>
+        /// <response code="401">Недостаточно прав для просмотра</response>
+        /// <response code="404">История изменений не найдена</response>
         [HttpGet]
         public async Task<IActionResult> GetAsync(int taskId, CancellationToken cancellationToken)
         {

@@ -13,6 +13,13 @@ using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthori
 
 namespace ProjectManagementSystemBackend.Controllers
 {
+    /// <summary>
+    /// Контроллер для управления участниками проектов
+    /// </summary>
+    /// <remarks>
+    /// Позволяет добавлять, просматривать, изменять и удалять участников проектов.
+    /// Требует авторизации и соответствующих прав доступа.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -28,12 +35,32 @@ namespace ProjectManagementSystemBackend.Controllers
         int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
 
+        /// <summary>
+        /// Конструктор контроллера участников
+        /// </summary>
+        /// <param name="participantService">Сервис работы с участниками</param>
+        /// <param name="authorizationService">Сервис авторизации</param>
         public ParticipantsController(IParticipantService participantService, IAuthorizationService authorizationService) 
         {
             _participantService = participantService;
             _authorizationService = authorizationService;
         }
 
+        /// <summary>
+        /// Получить список участников проекта
+        /// </summary>
+        /// <param name="projectId">ID проекта</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>Список участников проекта</returns>
+        /// <remarks>
+        /// Для получения списка участников проект должен быть публичным или необходимо быть участником проекта
+        /// 
+        /// Пример запроса:
+        /// GET /api/Participants?projectId=123
+        /// </remarks>
+        /// <response code="200">Список участников успешно получен</response>
+        /// <response code="401">Недостаточно прав доступа</response>
+        /// <response code="404">Участники не найдены</response>
         [HttpGet]
         public async Task<IActionResult> GetAsync(int projectId, CancellationToken cancellationToken)
         {
@@ -44,6 +71,31 @@ namespace ProjectManagementSystemBackend.Controllers
             var participants = await _participantService.GetAsync(projectId,cancellationToken);
             return participants is null ? NotFound() : Ok(participants);
         }
+
+        /// <summary>
+        /// Добавить нового участника в проект
+        /// </summary>
+        /// <param name="participant">Данные участника</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>ID созданного участника</returns>
+        /// <remarks>
+        /// Для добавления нового участника необходимо иметь права владельца проекта
+        /// 
+        /// Пример запроса:
+        /// POST /api/Participants
+        /// {
+        ///     "id": 0,
+        ///     "projectId": 11,
+        ///     "userId": 11,
+        ///     "roleId": 3
+        /// }
+        /// 
+        /// </remarks>
+        /// <response code="200">Участник успешно добавлен</response>
+        /// <response code="400">Некорректные данные</response>
+        /// <response code="401">Недостаточно прав для добавления</response>
+        /// <response code="409">Конфликт данных (пользователь уже является участником проекта)</response>
+        /// <response code="500">Ошибка сервера</response>
         [HttpPost]
         public async Task<IActionResult> PostAsync(ParticipantDTO participant, CancellationToken cancellationToken)
         {
@@ -58,8 +110,30 @@ namespace ProjectManagementSystemBackend.Controllers
             catch (InvalidDataException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
-
         }
+
+        /// <summary>
+        /// Обновить данные участника
+        /// </summary>
+        /// <param name="newParticipant">Новые данные участника</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>Статус операции</returns>
+        /// <remarks>
+        /// Для обновления данных об участнике необходимо иметь роль владельца проекта
+        /// 
+        /// Пример запроса:
+        /// PUT /api/Participants
+        /// {
+        ///     "id": 11,
+        ///     "projectId": 11,
+        ///     "userId": 11,
+        ///     "roleId": 3
+        /// }
+        /// </remarks>
+        /// <response code="204">Данные участника обновлены</response>
+        /// <response code="400">Некорректные данные</response>
+        /// <response code="401">Недостаточно прав для изменения</response>
+        /// <response code="500">Ошибка сервера</response>
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(ParticipantDTO newParticipant,CancellationToken cancellationToken)
         {
@@ -75,6 +149,23 @@ namespace ProjectManagementSystemBackend.Controllers
             catch (InvalidDataException ex) { return BadRequest(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
+
+        /// <summary>
+        /// Удалить участника из проекта
+        /// </summary>
+        /// <param name="participantId">ID участника</param>
+        /// <param name="cancellationToken">Токен отмены</param>
+        /// <returns>Статус операции</returns>
+        /// <remarks>
+        /// Для удаления участника проекта необходимо иметь роль владельца проекта
+        /// 
+        /// Пример запроса:
+        /// DELETE /api/Participants?participantId=11
+        /// </remarks>
+        /// <response code="204">Участник успешно удален</response>
+        /// <response code="401">Недостаточно прав для удаления</response>
+        /// <response code="404">Участник не найден</response>
+        /// <response code="500">Ошибка сервера</response>
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int participantId, CancellationToken cancellationToken)
         {
@@ -89,7 +180,6 @@ namespace ProjectManagementSystemBackend.Controllers
             }
             catch (KeyNotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
-
         }
     }
 }

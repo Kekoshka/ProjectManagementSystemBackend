@@ -24,6 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationContext>(config =>
 {
     config.UseSqlServer(builder.Configuration["ConnectionStrings:ConnectionStringMSSQL"]);
@@ -79,6 +80,12 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseSwagger()
+    .UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+    });
 
 app.Run();
 

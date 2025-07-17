@@ -14,12 +14,17 @@ namespace ProjectManagementSystemBackend.Services
         int _userRole = 3;
         int _adminRole = 2; 
         int _ownerRole = 1;
+
+        /// <summary>
+        /// Конструктор сервиса авторизации
+        /// </summary>
+        /// <param name="context">Сервис контекста</param>
         public AuthorizationService(ApplicationContext context) 
         {
             _context = context;
         }
 
-        public async Task<bool> AccessByBoardIdAsync(int boardId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
+        public async Task<bool> AccessByBoardIdAsync    (int boardId, int userId, int[] availableRolesId, CancellationToken cancellationToken)
         {
             var availableBoard = await _context.BaseBoards
                 .Where(bb => availableRolesId.Any(ar => ar == _userRole)

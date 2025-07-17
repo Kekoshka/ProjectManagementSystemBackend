@@ -12,10 +12,21 @@ namespace ProjectManagementSystemBackend.Services
     public class AuthenticationService : IAuthenticationService
     {
         IConfiguration _configuration;
+        
+        /// <summary>
+        /// Конструктор сервиса аутентификации
+        /// </summary>
+        /// <param name="configuration">Конфигурация приложения</param>
         public AuthenticationService(IConfiguration configuration) 
         {
             _configuration = configuration;
         }
+
+        /// <summary>
+        /// Получить JWT токен
+        /// </summary>
+        /// <param name="user">Данные пользователя</param>
+        /// <returns>JWT токен для дальнейшей авторизации</returns>
         public string GetJWT(User user)
         {
             List<Claim> claims = new List<Claim>
