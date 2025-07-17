@@ -49,10 +49,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 using var scope = builder.Services.BuildServiceProvider().CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
-                if (audiences == null || !audiences.Any())
-                    return false;
-                var audience = audiences.First();
-                return dbContext.Users.Any(u => u.Id.ToString() == audience);
+                return dbContext.Users.Any(u => u.Id.ToString() == audiences.FirstOrDefault());
             }
         };
     });
