@@ -6,12 +6,16 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ProjectManagementSystemBackend.Common;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
+using ProjectManagementSystemBackend.Models.Options;
 using ProjectManagementSystemBackend.Services;
+using ProjectManagementSystemBackend.Services.Authorization.Handlers.ProjectHandlers;
+using ProjectManagementSystemBackend.Services.Authorization.Requirements.ProjectRequirements;
 using System.Reflection;
 using System.Text;
 using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
@@ -19,21 +23,25 @@ using Task = ProjectManagementSystemBackend.Models.Task;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
+
 builder.Services.AddSwaggerGen(options =>
 {
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     options.IncludeXmlComments(xmlPath);
 });
+
 builder.Services.AddDbContext<ApplicationContext>(config =>
 {
-    config.UseSqlServer(builder.Configuration["ConnectionStrings:ConnectionStringMSSQL"]);
+    config.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionStringMSSQL"));
 });
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -53,20 +61,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
+
 builder.Services.AddMapster();
+
+builder.Services.AddScoped<IAuthorizationHandler, ProjectOwnerHandler>();
+
+
+builder.Services.AddAuthorization( options =>
+    AuthorizationPoliciesConfig.Configure(options));
+
+RegisterServices.RegisterExecutingAsseblyServices(builder.Services);
+
+builder.Services.Configure<RoleOptions>(builder.Configuration.GetSection(nameof(RoleOptions)));
+
 TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());
-builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
-builder.Services.AddScoped<ProjectManagementSystemBackend.Interfaces.IAuthenticationService, ProjectManagementSystemBackend.Services.AuthenticationService>();
-builder.Services.AddScoped<ITaskHistoryService, TaskHistoryService>();
-builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ITaskService, TaskService>();
-builder.Services.AddScoped<IStatusService, StatusService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
-builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<IParticipantService, ParticipantService>();
-builder.Services.AddScoped<ICommentService, CommentService>();
-builder.Services.AddScoped<IBoardService, BoardService>();
 
 
 var app = builder.Build();
@@ -78,6 +86,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

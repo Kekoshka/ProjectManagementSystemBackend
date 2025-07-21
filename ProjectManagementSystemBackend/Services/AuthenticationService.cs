@@ -1,7 +1,9 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
+using ProjectManagementSystemBackend.Models.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -11,15 +13,15 @@ namespace ProjectManagementSystemBackend.Services
 {
     public class AuthenticationService : IAuthenticationService
     {
-        IConfiguration _configuration;
+        JWTOptions _jwtOptions;
         
         /// <summary>
         /// Конструктор сервиса аутентификации
         /// </summary>
         /// <param name="configuration">Конфигурация приложения</param>
-        public AuthenticationService(IConfiguration configuration) 
+        public AuthenticationService(IOptions<JWTOptions> jwtOptions) 
         {
-            _configuration = configuration;
+            _jwtOptions = jwtOptions.Value;
         }
 
         /// <summary>
@@ -40,11 +42,11 @@ namespace ProjectManagementSystemBackend.Services
             };
 
             var jwt = new JwtSecurityToken(
-                issuer: _configuration["JWT:Issuer"],
+                issuer: _jwtOptions.Issuer,
                 audience: user.Id.ToString(),
-                expires: DateTime.UtcNow.AddMinutes(60),
+                expires: DateTime.UtcNow.AddMinutes(_jwtOptions.LifeTimeFromMinutes),
                 claims: claims,
-                signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Key"])), SecurityAlgorithms.HmacSha256));
+                signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)), SecurityAlgorithms.HmacSha256));
            
             return new JwtSecurityTokenHandler().WriteToken(jwt);
         }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Mapster;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Security.Claims;
-using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
+using IAuthorizationService = Microsoft.AspNetCore.Authorization.IAuthorizationService;
 
 namespace ProjectManagementSystemBackend.Controllers
 {
@@ -119,9 +120,9 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(ProjectDTO newProject, CancellationToken cancellationToken)
         {
-            bool isAuthorize = await _authorizationService.AccessByProjectIdAsync(newProject.Id, _userId, _ownerRoles, cancellationToken);
-            if(!isAuthorize)
-                return Unauthorized("You havent access to this action");
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User,newProject.Id ,"ProjectOwnerPolicy");
+            if (!authorizationResult.Succeeded)
+                return Forbid();
 
             try
             {
@@ -148,12 +149,13 @@ namespace ProjectManagementSystemBackend.Controllers
         /// <response code="401">Недостаточно прав для удаления</response>
         /// <response code="404">Проект не найден</response>
         /// <response code="500">Ошибка сервера</response>
+        [Authorize(Policy = "ProjectOwnerAccess")]
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int projectId, CancellationToken cancellationToken)
         {
-            bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(projectId, _userId, _ownerRoles, cancellationToken);
-            if(!isAuthorized)
-                return Unauthorized("You havent access to this action");
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, projectId, "ProjectOwnerPolicy");
+            if (!authorizationResult.Succeeded)
+                return Forbid();
 
             try
             {

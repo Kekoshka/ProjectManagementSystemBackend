@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystemBackend.Common.DBConfig;
 using ProjectManagementSystemBackend.Models;
+using System.Reflection;
 
 namespace ProjectManagementSystemBackend.Context
 {
@@ -92,42 +94,14 @@ namespace ProjectManagementSystemBackend.Context
         /// <remarks>
         /// 
         /// Настройка связей между сущностями
-        /// Заполнение начальных данных:
-        /// Роли пользователей (Owner, Admin, User)
-        /// Статусы задач (Новые, В работе, Проверяются, Готовые)
-        /// Типы действий (Create, Update, Delete)
+        /// Заполнение начальных данных
         /// </remarks>
         public DbSet<User> Users { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Participant>()
-                .HasMany(p => p.CreatedTasks)
-                .WithOne(t => t.Creator)
-                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-            modelBuilder.Entity<Participant>()
-                .HasMany(p => p.ResponsibleTasks)
-                .WithOne(t => t.ResponsiblePerson)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            modelBuilder.Entity<Role>()
-                .HasData(
-                new Role { Name = "Owner", Id = 1 },
-                new Role { Name = "Admin", Id = 2 },
-                new Role { Name = "User", Id = 3 });
-
-            modelBuilder.Entity<Status>()
-                .HasData(
-                new Role { Name = "Новые", Id = 1 },
-                new Role { Name = "В работе", Id = 2 },
-                new Role { Name = "Проверяются", Id = 3 },
-                new Role { Name = "Готовые", Id = 4 });
-
-            modelBuilder.Entity<ActionType>()
-                .HasData(
-                new ActionType { Id = 1, Name = "Create" },
-                new ActionType { Id = 2, Name = "Update" },
-                new ActionType { Id = 3, Name = "Delete" });
+            SeedData.Seed(modelBuilder);   
         }
     }
 }
