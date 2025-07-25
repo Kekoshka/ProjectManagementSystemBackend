@@ -33,7 +33,6 @@ namespace ProjectManagementSystemBackend.Controllers
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         int[] _userRoles = [1, 2, 3];
         int[] _adminRoles = [1, 2];
-        int[] _ownerRoles = [1];
 
         /// <summary>
         /// Конструктор контроллера статусов

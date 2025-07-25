@@ -19,8 +19,6 @@ namespace ProjectManagementSystemBackend.Services
     {
         ApplicationContext _context;
         int _userRole = 3;
-        int _adminRole = 2; 
-        int _ownerRole = 1;
 
         /// <summary>
         /// Конструктор сервиса авторизации

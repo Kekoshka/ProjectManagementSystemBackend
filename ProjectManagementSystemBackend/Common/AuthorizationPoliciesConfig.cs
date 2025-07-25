@@ -16,9 +16,6 @@ namespace ProjectManagementSystemBackend.Common
         {
             options.AddPolicy("ProjectOwnerPolicy", policy =>
             policy.Requirements.Add(new ProjectOwnerRequirement()));
-
-            options.AddPolicy("ProjectAdminPolicy", policy =>
-            policy.Requirements.Add(new ProjectAdminRequirement()));
         }
     }
 }

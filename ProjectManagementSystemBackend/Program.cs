@@ -16,6 +16,7 @@ using ProjectManagementSystemBackend.Models.Options;
 using ProjectManagementSystemBackend.Services;
 using ProjectManagementSystemBackend.Services.Authorization.Handlers.ProjectHandlers;
 using ProjectManagementSystemBackend.Services.Authorization.Requirements.ProjectRequirements;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Reflection;
 using System.Text;
 using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
@@ -26,7 +27,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 
 builder.Services.AddOpenApi();
 
@@ -49,10 +51,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
 
             ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["JWT:Issuer"],
+            ValidIssuer = builder.Configuration["JWTOptions:Issuer"],
             ValidateAudience = true,
             ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTOptions:Key"])),
             AudienceValidator = (audiences, securityToken, validationParameters) =>
             {
                 using var scope = builder.Services.BuildServiceProvider().CreateScope();
@@ -73,9 +75,12 @@ builder.Services.AddAuthorization( options =>
 RegisterServices.RegisterExecutingAsseblyServices(builder.Services);
 
 builder.Services.Configure<RoleOptions>(builder.Configuration.GetSection(nameof(RoleOptions)));
+builder.Services.Configure<JWTOptions>(builder.Configuration.GetSection(nameof(JWTOptions)));
+
 
 TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());
 
+builder.Services.AddFluentValidationAutoValidation();
 
 var app = builder.Build();
 

@@ -32,9 +32,6 @@ namespace ProjectManagementSystemBackend.Controllers
 
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        int[] _userRoles = [1, 2, 3];
-        int[] _adminRoles = [1, 2];
-        int[] _ownerRoles = [1];
         /// <summary>
         /// Конструктор контроллера проектов
         /// </summary>
@@ -149,7 +146,6 @@ namespace ProjectManagementSystemBackend.Controllers
         /// <response code="401">Недостаточно прав для удаления</response>
         /// <response code="404">Проект не найден</response>
         /// <response code="500">Ошибка сервера</response>
-        [Authorize(Policy = "ProjectOwnerAccess")]
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(int projectId, CancellationToken cancellationToken)
         {

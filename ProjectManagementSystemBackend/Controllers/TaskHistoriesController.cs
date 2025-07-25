@@ -27,8 +27,6 @@ namespace ProjectManagementSystemBackend.Controllers
 
         int? userId;
         int[] _userRoles = [1, 2, 3];
-        int[] _adminRoles = [1, 2];
-        int[] _ownerRoles = [1];
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         /// <summary>

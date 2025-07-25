@@ -86,6 +86,11 @@ namespace ProjectManagementSystemBackend.Context
         /// История изменений задач
         /// </summary>
         public DbSet<TaskHistory> TaskHistories { get; set; }
+        /// <summary>
+        /// Пользователи
+        /// </summary>
+        public DbSet<User> Users { get; set; }
+
 
         /// <summary>
         /// Конфигурация модели данных
@@ -96,7 +101,6 @@ namespace ProjectManagementSystemBackend.Context
         /// Настройка связей между сущностями
         /// Заполнение начальных данных
         /// </remarks>
-        public DbSet<User> Users { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

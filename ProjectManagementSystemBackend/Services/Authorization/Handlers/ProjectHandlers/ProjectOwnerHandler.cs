@@ -20,7 +20,8 @@ namespace ProjectManagementSystemBackend.Services.Authorization.Handlers.Project
             _ownerRoles = roleOptions.Value.OwnerRoles;
         }
 
-        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, 
+        protected override async Task HandleRequirementAsync(
+            AuthorizationHandlerContext context, 
             ProjectOwnerRequirement requirement, 
             int projectId)
         {

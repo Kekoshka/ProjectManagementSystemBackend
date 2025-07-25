@@ -25,14 +25,12 @@ namespace ProjectManagementSystemBackend.Controllers
     [Authorize]
     public class ParticipantsController : ControllerBase
     {
-        ApplicationContext _context;
         IAuthorizationService _authorizationService;
         IParticipantService _participantService;
 
         int? userId;
         int _userId => userId ??= Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
         int[] _userRoles = [1, 2, 3];
-        int[] _adminRoles = [1, 2];
         int[] _ownerRoles = [1];
 
         /// <summary>

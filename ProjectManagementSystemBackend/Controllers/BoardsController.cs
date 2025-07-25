@@ -132,7 +132,7 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpPost("postKanbanBoard")]
         public async Task<IActionResult> PostKanbanAsync(KanbanBoardDTO kanbanBoard, CancellationToken cancellationToken)
         {
-            bool isAuthorized = await _authorizationService.AccessByBoardIdAsync(kanbanBoard.BaseBoard.Id, _userId, _adminRoles, cancellationToken);
+            bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(kanbanBoard.BaseBoard.ProjectId, _userId, _adminRoles, cancellationToken);
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 

@@ -63,7 +63,7 @@ namespace ProjectManagementSystemBackend.Controllers
         /// <summary>
         /// Зарегистрировать пользователя
         /// </summary>
-        /// <param name="authData">Данные для регистрации</param>
+        /// <param name="user">Данные для регистрации</param>
         /// <param name="cancellationToken">Токен отмены</param>
         /// <returns>статус операции</returns>
         /// <remarks>

@@ -49,7 +49,7 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
-            var roles = _roleService.GetAsync(cancellationToken);
+            var roles = await _roleService.GetAsync(cancellationToken);
 
             return roles is null ? NotFound() : Ok(roles);
         }

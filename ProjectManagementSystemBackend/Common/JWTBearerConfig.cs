@@ -7,8 +7,16 @@ using System.Text;
 
 namespace ProjectManagementSystemBackend.Common
 {
+    /// <summary>
+    /// Класс для настройки авторизации по JWT
+    /// </summary>
     public static class JWTBearerConfig
     {
+        /// <summary>
+        /// Конфигурация для авторизации по JWT
+        /// </summary>
+        /// <param name="services">Коллекция сервисов приложения</param>
+        /// <param name="configuration">Конфигурация</param>
         public static void ConfigureJWTAuthentication(IServiceCollection services, IConfiguration configuration)
         {;
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

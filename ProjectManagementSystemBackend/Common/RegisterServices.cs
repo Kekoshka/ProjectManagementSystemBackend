@@ -1,4 +1,5 @@
-﻿using ProjectManagementSystemBackend.Services;
+﻿using FluentValidation;
+using ProjectManagementSystemBackend.Services;
 using System.Reflection;
 
 namespace ProjectManagementSystemBackend.Common
@@ -28,6 +29,8 @@ namespace ProjectManagementSystemBackend.Common
                 if (interfaceType is not null)
                     services.AddScoped(interfaceType, serviceType);
             }
+
+            services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         }    
     }
 }

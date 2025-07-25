@@ -14,11 +14,11 @@ namespace ProjectManagementSystemBackend.Services
     public class AuthenticationService : IAuthenticationService
     {
         JWTOptions _jwtOptions;
-        
+
         /// <summary>
         /// Конструктор сервиса аутентификации
         /// </summary>
-        /// <param name="configuration">Конфигурация приложения</param>
+        /// <param name="jwtOptions">Конфигурация приложения</param>
         public AuthenticationService(IOptions<JWTOptions> jwtOptions) 
         {
             _jwtOptions = jwtOptions.Value;
