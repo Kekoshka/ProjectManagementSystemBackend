@@ -6,8 +6,24 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
     /// <summary>
     /// Класс хранящий методы расширения с правилами валидации моделей
     /// </summary>
-    public static class BaseValidatorRules 
+    public static class BaseValidatorRules
     {
+        const int MinLengthLogin = 5;
+        const int MinLengthPassword = 8;
+        const int MinLengthName = 1;
+        const int MinLengthUserName = 2;
+        const int MinPriority = 1;
+        const int MinValuePositiveNumber = 0;
+        const int MaxLengthLogin = 50;
+        const int MaxLengthPassword = 50;
+        const int MaxLengthName = 100;
+        const int MaxLengthUserName = 50;
+        const int MaxLengthDescription = 500;
+        const int MaxPriority = 10;
+        const int MaxLengthAction = 500;
+        const int MaxLengthMessage = 1000;
+        const int TimeReserveForDelay = 10;
+
         /// <summary>
         /// Правила для проверки логина
         /// </summary>
@@ -22,7 +38,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         {
             return ruleBuilder
                 .NotEmpty().WithMessage("Login cannot be empty")
-                .Length(5, 50).WithMessage("Length of the login must be from 3 to 50 characters")
+                .Length(MinLengthLogin, MaxLengthLogin).WithMessage("Length of the login must be from 5 to 50 characters")
                 .Matches("^[a-zA-Z0-9_]+$").WithMessage("Login can contain only letters numbers and underscores");
         }
         /// <summary>
@@ -41,7 +57,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         {
             return ruleBuilder
                 .NotEmpty().WithMessage("Login cannot be empty")
-                .Length(8, 50).WithMessage("Length of the password nust be from 8 to 50 characters")
+                .Length(MinLengthPassword, MaxLengthPassword).WithMessage("Length of the password nust be from 8 to 50 characters")
                 .Matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$_!%*?&])[A-Za-z\\d@$_!%*?&]{8,}$").WithMessage("The password must contain at least 8 characters, at least one lowercase letter, at least one uppercase letter, at least one digit, and at least one special character.");
         }
         /// <summary>
@@ -57,7 +73,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         {
             return ruleBuilder
                 .NotEmpty().WithMessage("Name cannot be empty")
-                .Length(1, 100).WithMessage("Length of the name must be from 1 to 100 characters");
+                .Length(MinLengthName, MaxLengthName).WithMessage("Length of the name must be from 1 to 100 characters");
         }
         /// <summary>
         /// Правила для проверки описания
@@ -71,7 +87,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         public static IRuleBuilderOptions<T, string> ValidateDescription<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             return ruleBuilder
-                .MaximumLength(500).WithMessage("Description should not exceed 500 characters");
+                .MaximumLength(MaxLengthDescription).WithMessage("Description should not exceed 500 characters");
         }
         /// <summary>
         /// Правила для проверки положительных чисел
@@ -85,7 +101,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         public static IRuleBuilderOptions<T,int> ValidatePositiveNumber<T>(this IRuleBuilder<T,int> ruleBuilder)
         {
             return ruleBuilder
-                .GreaterThanOrEqualTo(0).WithMessage("Number must be a positive number or equal to 0");
+                .GreaterThanOrEqualTo(MinValuePositiveNumber).WithMessage("Number must be a positive number or equal to 0");
         }
         /// <summary>
         /// Правила для проверки сообщения
@@ -100,7 +116,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         {
             return ruleBuilder
                 .NotEmpty().WithMessage("Message cannot be empty")
-                .MaximumLength(1000).WithMessage("Message should not exceed 1000 characters");
+                .MaximumLength(MaxLengthMessage).WithMessage("Message should not exceed 1000 characters");
         }
         /// <summary>
         /// Правила для проверки даты
@@ -115,7 +131,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         public static IRuleBuilderOptions<T,DateTime> ValidateFutureDate<T>(this IRuleBuilder<T,DateTime> ruleBuilder)
         {
             return ruleBuilder
-                .GreaterThanOrEqualTo(DateTime.UtcNow - TimeSpan.FromSeconds(10)) //запас 10 секунд на задержку 
+                .GreaterThanOrEqualTo(DateTime.UtcNow - TimeSpan.FromSeconds(TimeReserveForDelay)) //запас 10 секунд на задержку 
                 .WithMessage("Date cannot be in the past");
         }
         /// <summary>
@@ -130,7 +146,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         public static IRuleBuilderOptions<T, int> ValidatePriority<T>(this IRuleBuilder<T,int> ruleBuilder)
         {
             return ruleBuilder
-                .InclusiveBetween(1, 10)
+                .InclusiveBetween(MinPriority, MaxPriority)
                 .WithMessage("Priority must be from 1 to 10");
         }
         /// <summary>
@@ -146,7 +162,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         {
             return ruleBuilder
                 .NotEmpty().WithMessage("Action cannot be empty")
-                .MaximumLength(500).WithMessage("Message should not exceed 500 characters");
+                .MaximumLength(MaxLengthAction).WithMessage("Message should not exceed 500 characters");
         }
         /// <summary>
         /// Правила для проверки имени пользователя
@@ -161,7 +177,7 @@ namespace ProjectManagementSystemBackend.Services.FluentValidator
         {
             return ruleBuilder
                 .NotEmpty().WithMessage("UserName cannot be empty")
-                .Length(3, 50).WithMessage("Length of the UserName must be from 2 to 50 characters")
+                .Length(MinLengthUserName,MaxLengthUserName).WithMessage("Length of the UserName must be from 2 to 50 characters")
                 .Matches("^[а-яА-Яa-zA-Z]+$").WithMessage("UserName must contain only letters");
         }
     }
