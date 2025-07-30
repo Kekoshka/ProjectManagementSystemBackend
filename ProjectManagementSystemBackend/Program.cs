@@ -44,25 +44,11 @@ builder.Services.AddDbContext<ApplicationContext>(config =>
     config.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionStringMSSQL"));
 });
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
+builder.Services.Configure<RoleOptions>(builder.Configuration.GetSection(nameof(RoleOptions)));
+builder.Services.Configure<JWTOptions>(builder.Configuration.GetSection(nameof(JWTOptions)));
+builder.Services.Configure<ContentTypesOptions>(builder.Configuration.GetSection(nameof(ContentTypesOptions)));
 
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["JWTOptions:Issuer"],
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTOptions:Key"])),
-            AudienceValidator = (audiences, securityToken, validationParameters) =>
-            {
-                using var scope = builder.Services.BuildServiceProvider().CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
-                return dbContext.Users.Any(u => u.Id.ToString() == audiences.FirstOrDefault());
-            }
-        };
-    });
+JWTBearerConfig.ConfigureJWTAuthentication(builder.Services);
 
 builder.Services.AddMapster();
 
@@ -74,8 +60,7 @@ builder.Services.AddAuthorization( options =>
 
 RegisterServices.RegisterExecutingAsseblyServices(builder.Services);
 
-builder.Services.Configure<RoleOptions>(builder.Configuration.GetSection(nameof(RoleOptions)));
-builder.Services.Configure<JWTOptions>(builder.Configuration.GetSection(nameof(JWTOptions)));
+
 
 
 TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());

@@ -17,18 +17,21 @@ namespace ProjectManagementSystemBackend.Common
         /// </summary>
         /// <param name="services">Коллекция сервисов приложения</param>
         /// <param name="configuration">Конфигурация</param>
-        public static void ConfigureJWTAuthentication(IServiceCollection services, IConfiguration configuration)
-        {;
+        public static void ConfigureJWTAuthentication(IServiceCollection services)
+        {
+            var serviceProvider = services.BuildServiceProvider();
+            JWTOptions JWToptions = serviceProvider.GetService<IOptions<JWTOptions>>().Value;
+
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
 
                     ValidateIssuer = true,
-                    ValidIssuer = configuration["JWT:Issuer"],
+                    ValidIssuer = JWToptions.Issuer,
                     ValidateAudience = true,
                     ValidateLifetime = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Key"])),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JWToptions.Key)),
                     AudienceValidator = (audiences, securityToken, validationParameters) =>
                         ValidateAudience(services, audiences)
                 });
