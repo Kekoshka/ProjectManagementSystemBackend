@@ -101,13 +101,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                var newStatus = await _statusService.PostAsync(status, cancellationToken);
-                return Ok(newStatus);
-            }
-            catch (NotFoundException ex) { return NotFound(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            var newStatus = await _statusService.PostAsync(status, cancellationToken);
+            return Ok(newStatus);
         }
 
         /// <summary>
@@ -139,13 +134,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _statusService.UpdateAsync(status, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException) { return NotFound(); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _statusService.UpdateAsync(status, cancellationToken);
+            return NoContent();
         }
 
         /// <summary>
@@ -171,13 +161,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)    
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _statusService.DeleteAsync(boardStatusId, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException) { return NotFound(); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _statusService.DeleteAsync(boardStatusId, cancellationToken);
+            return NoContent();
         }
     }
 }

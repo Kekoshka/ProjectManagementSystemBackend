@@ -41,15 +41,17 @@ namespace ProjectManagementSystemBackend.Middlewares
                 InternalServerErrorException => StatusCodes.Status500InternalServerError,
                 NotFoundException => StatusCodes.Status404NotFound,
                 UnauthorizedException => StatusCodes.Status401Unauthorized,
-                ConflictException => StatusCodes.Status422UnprocessableEntity
+                UnprocessableEntityException => StatusCodes.Status422UnprocessableEntity,
+                Exception => StatusCodes.Status500InternalServerError
             };
+
 
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = _contentTypes.Json;
 
             var response = new
             {
-                error = exception.Message,
+                error = statusCode == StatusCodes.Status500InternalServerError ? "Internal server error" : exception.Message,
                 status = statusCode
             };
             

@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ProjectManagementSystemBackend.Common;
+using ProjectManagementSystemBackend.Common.Extensions;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
@@ -88,6 +89,7 @@ app.UseSwagger()
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
     });
+app.UseExceptionHandling();
 
 app.Run();
 

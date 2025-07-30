@@ -108,14 +108,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if(!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
                 var newTask = await _taskService.PostAsync(task, _userId, cancellationToken);
                 return Ok(newTask);
-            }
-            catch (BadRequestException ex) { return BadRequest(ex.Message); }
-            catch (NotFoundException ex) { return NotFound(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
         /// <summary>
@@ -150,17 +144,11 @@ namespace ProjectManagementSystemBackend.Controllers
         public async Task<IActionResult> UpdateAsync(TaskDTO updatedTask,CancellationToken cancellationToken)
         {
             bool isAuthorized = await _authorizationService.AccessByTaskIdAsync(updatedTask.Id, _userId, _adminRoles, cancellationToken);
-            if(!isAuthorized)
+            if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _taskService.UpdateAsync(updatedTask, _userId, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException ex) { return NotFound(ex.Message); }
-            catch (BadRequestException ex) { return BadRequest(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _taskService.UpdateAsync(updatedTask, _userId, cancellationToken);
+            return NoContent();
         }
 
         /// <summary>
@@ -183,17 +171,11 @@ namespace ProjectManagementSystemBackend.Controllers
         public async Task<IActionResult> DeleteAsync(int taskId,CancellationToken cancellationToken)
         {
             bool isAuthorize = await _authorizationService.AccessByTaskIdAsync(taskId, _userId, _adminRoles, cancellationToken);
-            if(!isAuthorize)
+            if (!isAuthorize)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _taskService.DeleteAsync(taskId,cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException) { return NotFound(); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _taskService.DeleteAsync(taskId,cancellationToken);
+            return NoContent();
         }
-
     }
 }

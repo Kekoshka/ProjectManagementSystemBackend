@@ -51,14 +51,8 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpPost("authorization")]
         public async Task<IActionResult> AuthorizationAsync(AuthData authData, CancellationToken cancellationToken)
         {
-            try
-            {
-                string jwt = await _userService.AuthorizationAsync(authData, cancellationToken);
-                return Ok(jwt);
-            }
-            catch (UnauthorizedException ex) { return Unauthorized(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
-
+            string jwt = await _userService.AuthorizationAsync(authData, cancellationToken);
+            return Ok(jwt);
         }
 
         /// <summary>
@@ -83,13 +77,8 @@ namespace ProjectManagementSystemBackend.Controllers
         [HttpPost("registration")]
         public async Task<IActionResult> RegistrationAsync(User user, CancellationToken cancellationToken)
         {
-            try
-            {
-                await _userService.RegistrationAsync(user, cancellationToken);
-                return NoContent();
-            }
-            catch (ConflictException ex) { return Conflict(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _userService.RegistrationAsync(user, cancellationToken);
+            return NoContent();
         }
     }
 }

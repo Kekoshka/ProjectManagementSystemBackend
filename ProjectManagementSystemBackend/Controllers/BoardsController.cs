@@ -215,14 +215,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _boardService.UpdateKanbanBoardAsync(newKanbanBoard, cancellationToken);   
-                return NoContent();
-            }
-            catch (NotFoundException ex) { return NotFound(ex.Message); }
-            catch(UnprocessableEntityException ex) { return UnprocessableEntity(ex.Message); }
-            catch(Exception) { return StatusCode(500, "InternalServerError"); }
+            await _boardService.UpdateKanbanBoardAsync(newKanbanBoard, cancellationToken);   
+            return NoContent();
         }
 
         /// <summary>
@@ -259,14 +253,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _boardService.UpdateScrumBoardAsync(newScrumBoard, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException ex) { return NotFound(ex.Message); }
-            catch (UnprocessableEntityException ex) { return UnprocessableEntity(ex.Message); }
-            catch (Exception) { return StatusCode(500, "InternalServerError"); }
+            await _boardService.UpdateScrumBoardAsync(newScrumBoard, cancellationToken);
+            return NoContent();
         }
 
         /// <summary>
@@ -290,13 +278,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
-                await _boardService.DeleteAsync(baseBoardId, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException ex) { return NotFound(ex.Message); }
-            catch (Exception) { return StatusCode(500, "InternalServerError"); }
+            await _boardService.DeleteAsync(baseBoardId, cancellationToken);
+            return NoContent();
         }
     }
 }

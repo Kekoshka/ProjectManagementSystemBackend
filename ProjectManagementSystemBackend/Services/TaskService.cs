@@ -107,12 +107,7 @@ namespace ProjectManagementSystemBackend.Services
             await _context.Tasks.AddAsync(newTask,cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            try
-            {
-                await _taskHistoryService.CreateAsync(newTask, userId, cancellationToken);
-            }
-            catch (NotFoundException ex) { throw new NotFoundException($"Exception in task history service: '{ex.Message}'"); }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            await _taskHistoryService.CreateAsync(newTask, userId, cancellationToken);
             return newTask.Adapt<TaskDTO>();
         }
 
@@ -153,13 +148,7 @@ namespace ProjectManagementSystemBackend.Services
             task.CreatorId = oldTask.CreatorId;
             await _context.SaveChangesAsync(cancellationToken);
 
-            try
-            {
                 await _taskHistoryService.UpdateAsync(oldTask,task, userId, cancellationToken);
-            }
-            catch (BadRequestException ex) { throw new BadRequestException($"Exception in task history service: '{ex.Message}'"); }
-            catch (NotFoundException ex) { throw new NotFoundException($"Exception in task history service: '{ex.Message}'"); }
-            catch (Exception ex) { throw new Exception(ex.Message); }
         }
     }
 }

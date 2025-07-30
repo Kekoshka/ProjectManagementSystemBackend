@@ -122,13 +122,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!authorizationResult.Succeeded)
                 return Forbid();
 
-            try
-            {
-                await _projectService.UpdateAsync(newProject, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException) { return NotFound(); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _projectService.UpdateAsync(newProject, cancellationToken);
+            return NoContent();
         }
 
         /// <summary>
@@ -154,13 +149,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!authorizationResult.Succeeded)
                 return Forbid();
 
-            try
-            {
-                await _projectService.DeleteAsync(projectId, cancellationToken);
-                return NoContent();
-            }
-            catch (NotFoundException) { return NotFound(); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
+            await _projectService.DeleteAsync(projectId, cancellationToken);
+            return NoContent();
         }
     }
 }
