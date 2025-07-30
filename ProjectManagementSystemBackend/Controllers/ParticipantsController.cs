@@ -10,6 +10,7 @@ using ProjectManagementSystemBackend.Models.DTO;
 using System;
 using System.Security.Claims;
 using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 
 namespace ProjectManagementSystemBackend.Controllers
 {
@@ -100,14 +101,9 @@ namespace ProjectManagementSystemBackend.Controllers
             bool isAuthorized = await _authorizationService.AccessByProjectIdAsync(participant.ProjectId, _userId, _ownerRoles, cancellationToken);
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
-            try
-            {
+            
                 var newParticipant = await _participantService.PostAsync(participant, cancellationToken);
                 return Ok(newParticipant.Id);
-            }
-            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
-            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
         /// <summary>
@@ -139,13 +135,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
                 await _participantService.UpdateAsync(newParticipant, cancellationToken);
                 return NoContent();
-            }
-            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
         /// <summary>
@@ -171,13 +162,8 @@ namespace ProjectManagementSystemBackend.Controllers
             if (!isAuthorized)
                 return Unauthorized("You havent access to this action");
 
-            try
-            {
                 await _participantService.DeleteAsync(participantId, cancellationToken);
                 return NoContent();
-            }
-            catch (KeyNotFoundException) { return NotFound(); }
-            catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
     }
 }

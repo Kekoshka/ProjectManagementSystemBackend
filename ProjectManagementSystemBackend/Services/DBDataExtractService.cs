@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using System.Reflection;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using System.Reflection.Metadata.Ecma335;
 
 namespace ProjectManagementSystemBackend.Services
@@ -49,7 +50,7 @@ namespace ProjectManagementSystemBackend.Services
         {
             var dbSet = dbSetProperty.GetValue(_context) as IQueryable<object>;
             return dbSet is null
-                ? throw new InvalidDataException($"Invalid dbSetProperty {dbSetProperty.Name}")
+                ? throw new BadRequestException($"Invalid dbSetProperty {dbSetProperty.Name}")
                 : await dbSet.AsNoTracking().ToListAsync();
         }
     }

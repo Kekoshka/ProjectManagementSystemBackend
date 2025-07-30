@@ -4,6 +4,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -33,12 +34,12 @@ namespace ProjectManagementSystemBackend.Services
         /// </summary>
         /// <param name="boardStatusId">ID статуса доски</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Если статус доски не найден </exception>
+        /// <exception cref="NotFoundException">Если статус доски не найден </exception>
         public async Task DeleteAsync(int boardStatusId, CancellationToken cancellationToken)
         {
             var status = await _context.BoardStatuses.FindAsync(boardStatusId, cancellationToken);
             if (status is null)
-                throw new KeyNotFoundException();
+                throw new NotFoundException();
             _context.BoardStatuses.Remove(status);
             await _context.SaveChangesAsync(cancellationToken);
         }
@@ -68,7 +69,7 @@ namespace ProjectManagementSystemBackend.Services
         /// Проверяет существует ли статус с переданным названием,
         /// если статуса с таким названием нет то создается новый статус, после чего создается статус доски
         /// </remarks>
-        /// <exception cref="KeyNotFoundException">Если базовая доска не была найдена</exception>
+        /// <exception cref="NotFoundException">Если базовая доска не была найдена</exception>
         public async Task<StatusDTO> PostAsync(StatusDTO status, CancellationToken cancellationToken)
         {
             var existsStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == status.Name, cancellationToken);
@@ -81,7 +82,7 @@ namespace ProjectManagementSystemBackend.Services
             }
             var existsBaseBoard = await _context.BaseBoards.FindAsync(status.BaseBoardId, cancellationToken);
             if (existsBaseBoard is null)
-                throw new KeyNotFoundException($"BaseBoard with {status.BaseBoardId} id not found");
+                throw new NotFoundException($"BaseBoard with {status.BaseBoardId} id not found");
             BoardStatus newBoardStatus = new()
             {
                 BaseBoardId = status.BaseBoardId,
@@ -102,12 +103,12 @@ namespace ProjectManagementSystemBackend.Services
         /// Проверяет существует ли статус с переданным названием,
         /// если статуса с таким названием нет то создается новый статус, после чего обновляется статус доски
         /// </returns>
-        /// <exception cref="KeyNotFoundException">Если статус не найден </exception>
+        /// <exception cref="NotFoundException">Если статус не найден </exception>
         public async Task UpdateAsync(StatusDTO status, CancellationToken cancellationToken)
         {
             var updatedStatus = await _context.BoardStatuses.FindAsync(status.Id, cancellationToken);
             if (updatedStatus is null)
-                throw new KeyNotFoundException();
+                throw new NotFoundException();
 
             var existedStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.Name == status.Name, cancellationToken);
             if (existedStatus is null)

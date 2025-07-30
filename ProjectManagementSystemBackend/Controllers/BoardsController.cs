@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
@@ -219,8 +220,8 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _boardService.UpdateKanbanBoardAsync(newKanbanBoard, cancellationToken);   
                 return NoContent();
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-            catch(InvalidOperationException ex) { return UnprocessableEntity(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
+            catch(UnprocessableEntityException ex) { return UnprocessableEntity(ex.Message); }
             catch(Exception) { return StatusCode(500, "InternalServerError"); }
         }
 
@@ -263,8 +264,8 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _boardService.UpdateScrumBoardAsync(newScrumBoard, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-            catch (InvalidOperationException ex) { return UnprocessableEntity(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
+            catch (UnprocessableEntityException ex) { return UnprocessableEntity(ex.Message); }
             catch (Exception) { return StatusCode(500, "InternalServerError"); }
         }
 
@@ -294,7 +295,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _boardService.DeleteAsync(baseBoardId, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception) { return StatusCode(500, "InternalServerError"); }
         }
     }

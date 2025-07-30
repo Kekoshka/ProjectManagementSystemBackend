@@ -3,6 +3,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -38,7 +39,7 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="authData">Данные для авторизации (логин и пароль)</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>JWT токен</returns>
-        /// <exception cref="UnauthorizedAccessException">Если неверный логин или пароль</exception>
+        /// <exception cref="UnauthorizedException">Если неверный логин или пароль</exception>
         /// <remarks>
         /// Процесс авторизации:
         /// 1. Поиск пользователя по логину
@@ -49,11 +50,11 @@ namespace ProjectManagementSystemBackend.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Login == authData.Login, cancellationToken);
             if (user is null)
-                throw new UnauthorizedAccessException("Invalid login or password");
+                throw new UnauthorizedException("Invalid login or password");
 
             bool passwordIsValid = _passwordHasherService.Verify(authData.Password, user.Password);
             if (!passwordIsValid)
-                throw new UnauthorizedAccessException("Invalid login or password");
+                throw new UnauthorizedException("Invalid login or password");
 
             var jwt = _authenticationService.GetJWT(user);
             return jwt;
@@ -65,7 +66,7 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="user">Данные нового пользователя</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>Task</returns>
-        /// <exception cref="InvalidOperationException">Если пользователь с таким логином уже существует</exception>
+        /// <exception cref="ConflictException">Если пользователь с таким логином уже существует</exception>
         /// <remarks>
         /// Процесс регистрации:
         /// 1. Проверка уникальности логина
@@ -76,7 +77,7 @@ namespace ProjectManagementSystemBackend.Services
         {
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Login == user.Login, cancellationToken);
             if (existingUser is not null)
-                throw new InvalidOperationException("user with such data is already exists");
+                throw new ConflictException("user with such data is already exists");
 
             User newUser = new()
             {

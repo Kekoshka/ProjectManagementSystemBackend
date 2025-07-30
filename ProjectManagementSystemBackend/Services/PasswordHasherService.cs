@@ -1,5 +1,6 @@
 ﻿using BCrypt.Net;
 using Microsoft.AspNetCore.Identity;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Interfaces;
 
 namespace ProjectManagementSystemBackend.Services

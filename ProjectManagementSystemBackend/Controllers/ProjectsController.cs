@@ -12,6 +12,7 @@ using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Security.Claims;
 using IAuthorizationService = Microsoft.AspNetCore.Authorization.IAuthorizationService;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 
 namespace ProjectManagementSystemBackend.Controllers
 {
@@ -126,7 +127,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _projectService.UpdateAsync(newProject, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException) { return NotFound(); }
+            catch (NotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
@@ -158,7 +159,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _projectService.DeleteAsync(projectId, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException) { return NotFound(); }
+            catch (NotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
     }

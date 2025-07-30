@@ -5,6 +5,7 @@ using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Reflection;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -33,12 +34,12 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="task">Данные созданной задачи</param>
         /// <param name="userId">ID пользователя</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Если пользователь не найден</exception>
+        /// <exception cref="NotFoundException">Если пользователь не найден</exception>
         public async Task CreateAsync(Models.Task task, int userId, CancellationToken cancellationToken)
         {
             var user = await _context.Users.FindAsync(userId, cancellationToken);
             if (user is null)
-                throw new KeyNotFoundException($"User with {userId} id not found");
+                throw new NotFoundException($"User with {userId} id not found");
             var responsiblePerson = await _context.Participants
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.Id == task.ResponsiblePersonId, cancellationToken);
@@ -72,17 +73,17 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="newTask">Новая задача</param>
         /// <param name="userId">ID пользователя</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Если пользователь не найден</exception>
-        /// <exception cref="InvalidDataException">Если передано null значение старой или новой задачи</exception>
+        /// <exception cref="NotFoundException">Если пользователь не найден</exception>
+        /// <exception cref="BadRequestException">Если передано null значение старой или новой задачи</exception>
         public async Task UpdateAsync(Models.Task oldTask,Models.Task newTask, int userId, CancellationToken cancellationToken)
         {
             var user = await _context.Users.FindAsync(userId, cancellationToken);
             if (user is null)
-                throw new KeyNotFoundException($"User with {userId} id not found");
+                throw new NotFoundException($"User with {userId} id not found");
             string actionString = $"{user.Name} внес изменения: ";
 
             if (oldTask is null || newTask is null)
-                throw new InvalidDataException("Old or new task is null");
+                throw new BadRequestException("Old or new task is null");
 
             PropertyInfo[] properties = typeof(Models.Task).GetProperties();
             foreach(PropertyInfo property in properties)

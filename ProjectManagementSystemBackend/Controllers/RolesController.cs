@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 
 namespace ProjectManagementSystemBackend.Controllers
 {

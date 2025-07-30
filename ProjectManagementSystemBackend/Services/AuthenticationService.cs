@@ -7,6 +7,7 @@ using ProjectManagementSystemBackend.Models.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using static Azure.Core.HttpHeader;
 
 namespace ProjectManagementSystemBackend.Services

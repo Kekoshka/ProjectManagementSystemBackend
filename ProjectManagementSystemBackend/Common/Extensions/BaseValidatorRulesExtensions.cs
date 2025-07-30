@@ -1,12 +1,12 @@
 ﻿using FluentValidation;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace ProjectManagementSystemBackend.Services.FluentValidator
+namespace ProjectManagementSystemBackend.Common.Extensions
 {
     /// <summary>
     /// Класс хранящий методы расширения с правилами валидации моделей
     /// </summary>
-    public static class BaseValidatorRules
+    public static class BaseValidatorRulesExtensions
     {
         const int MinLengthLogin = 5;
         const int MinLengthPassword = 8;

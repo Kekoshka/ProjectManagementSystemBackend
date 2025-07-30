@@ -10,6 +10,7 @@ using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.ComponentModel;
 using System.Security.Claims;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
 
 namespace ProjectManagementSystemBackend.Controllers
@@ -105,7 +106,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 var newStatus = await _statusService.PostAsync(status, cancellationToken);
                 return Ok(newStatus);
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
@@ -143,7 +144,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _statusService.UpdateAsync(status, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException) { return NotFound(); }
+            catch (NotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
@@ -175,7 +176,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _statusService.DeleteAsync(boardStatusId, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException) { return NotFound(); }
+            catch (NotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
     }

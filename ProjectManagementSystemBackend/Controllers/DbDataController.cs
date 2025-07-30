@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 
 namespace ProjectManagementSystemBackend.Controllers
 {

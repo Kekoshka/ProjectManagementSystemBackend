@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Models.DTO;
 
 namespace ProjectManagementSystemBackend.Services

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Models.Options;
 
 namespace ProjectManagementSystemBackend.Services

@@ -1,9 +1,11 @@
 ﻿using Mapster;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -55,12 +57,12 @@ namespace ProjectManagementSystemBackend.Services
         /// </summary>
         /// <param name="projectId">ID проекта</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Если проект не найден</exception>
+        /// <exception cref="NotFoundException">Если проект не найден</exception>
         public async Task DeleteAsync(int projectId, CancellationToken cancellationToken)
         {
             var project = await _context.Projects.FindAsync(projectId,cancellationToken);
             if (project is null)
-                throw new KeyNotFoundException($"Project with {projectId} id not found");
+                throw new NotFoundException($"Project with {projectId} id not found");
 
             _context.Remove(project);
             await _context.SaveChangesAsync(cancellationToken);
@@ -88,12 +90,12 @@ namespace ProjectManagementSystemBackend.Services
         /// </summary>
         /// <param name="newProject">DTO с обновленными данными проекта</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Если проект не найден</exception>
+        /// <exception cref="NotFoundException">Если проект не найден</exception>
         public async Task UpdateAsync(ProjectDTO newProject, CancellationToken cancellationToken)
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == newProject.Id, cancellationToken);
             if (project is null)
-                throw new KeyNotFoundException($"Project with {newProject.Id} id not found");
+                throw new NotFoundException($"Project with {newProject.Id} id not found");
 
             newProject.Adapt(project, config.Fork(f => f.ForType<Project, ProjectDTO>().Ignore("Id")));
             await _context.SaveChangesAsync(cancellationToken);

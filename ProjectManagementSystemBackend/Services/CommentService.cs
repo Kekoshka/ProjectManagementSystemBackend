@@ -4,6 +4,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -29,12 +30,12 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="commentId">ID комментария</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>Статус операции</returns>
-        /// <exception cref="KeyNotFoundException">Если комментарий не найден</exception>
+        /// <exception cref="NotFoundException">Если комментарий не найден</exception>
         public async Task DeleteAsync(int commentId, CancellationToken cancellationToken)
         {
             var comment = await _context.TaskComments.FindAsync(commentId,cancellationToken);
             if (comment is null)
-                throw new KeyNotFoundException();
+                throw new NotFoundException();
             _context.TaskComments.Remove(comment);
             await _context.SaveChangesAsync(cancellationToken);
         }
@@ -83,12 +84,12 @@ namespace ProjectManagementSystemBackend.Services
         /// </summary>
         /// <param name="comment">DTO с данными обновленного комментария</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Комментарий с заданным ID не найден</exception>
+        /// <exception cref="NotFoundException">Комментарий с заданным ID не найден</exception>
         public async Task UpdateAsync(CommentDTO comment, CancellationToken cancellationToken)
         {
             var updatedComment = await _context.TaskComments.FindAsync(comment.Id, cancellationToken);
             if (updatedComment is null)
-                throw new KeyNotFoundException($"Not found comment with {comment.Id} id ");
+                throw new NotFoundException($"Not found comment with {comment.Id} id ");
             updatedComment.Message = comment.Message;
             await _context.SaveChangesAsync(cancellationToken);
         }

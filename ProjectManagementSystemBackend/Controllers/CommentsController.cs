@@ -9,6 +9,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Services;
 using System.Security.Claims;
 using System.Threading;
@@ -134,7 +135,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _commentService.UpdateAsync(comment, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error");  }
         }
         /// <summary>
@@ -165,7 +166,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _commentService.DeleteAsync(commentId, cancellationToken);
                 return NoContent();
             }
-            catch(KeyNotFoundException) { return NotFound(); }
+            catch(NotFoundException) { return NotFound(); }
             catch(Exception) { return StatusCode(500, "Internal server error"); }
         }
     }

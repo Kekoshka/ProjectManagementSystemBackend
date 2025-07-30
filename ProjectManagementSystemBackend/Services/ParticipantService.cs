@@ -4,6 +4,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -55,13 +56,13 @@ namespace ProjectManagementSystemBackend.Services
         /// </summary>
         /// <param name="participantId">ID участника проекта</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
-        /// <exception cref="KeyNotFoundException">Если участник не был найден</exception>
+        /// <exception cref="NotFoundException">Если участник не был найден</exception>
         public async Task DeleteAsync(int participantId, CancellationToken cancellationToken)
         {
             var participant = await _context.Participants
                 .FirstOrDefaultAsync(p => p.Id == participantId, cancellationToken);
             if (participant is null)
-                throw new KeyNotFoundException();
+                throw new NotFoundException();
             _context.Participants.Remove(participant);
             await _context.SaveChangesAsync(cancellationToken);
         }
@@ -88,22 +89,22 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="participant">DTO с данными нового участника проекта</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>DTO с данными созданного участника проекта</returns>
-        /// <exception cref="InvalidDataException">Если был передан несуществующий Id пользователя или роли</exception>
-        /// <exception cref="InvalidOperationException">Если пользователь уже является участником проекта</exception>
+        /// <exception cref="BadRequestException">Если был передан несуществующий Id пользователя или роли</exception>
+        /// <exception cref="ConflictException">Если пользователь уже является участником проекта</exception>
         public async Task<ParticipantDTO> PostAsync(ParticipantDTO participant, CancellationToken cancellationToken)
         {
             if (!_userRoles.Any(r => r == participant.RoleId))
-                throw new InvalidDataException("Invalid role id");
+                throw new BadRequestException("Invalid role id");
             var existUser = await _context.Users.FindAsync(participant.UserId, cancellationToken);
             if (existUser is null)
-                throw new InvalidDataException("Invalid user id");
+                throw new BadRequestException("Invalid user id");
 
             var existParticipant = await _context.Participants
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.ProjectId == participant.ProjectId &&
                     p.UserId == participant.UserId, cancellationToken);
             if (existParticipant is not null)
-                throw new InvalidOperationException("User is already a participant of the project");
+                throw new ConflictException("User is already a participant of the project");
 
             Participant newParticipant = participant.Adapt<Participant>(config.Fork(f => f.ForType<ParticipantDTO,Participant>().Ignore("Id").Ignore("User")));
             await _context.Participants.AddAsync(newParticipant, cancellationToken);
@@ -120,15 +121,15 @@ namespace ProjectManagementSystemBackend.Services
         /// <remarks>
         /// Обновлет данные о роли участника проекта
         /// </remarks>
-        /// <exception cref="InvalidDataException">Если передан неверный ID роли или участника</exception>
+        /// <exception cref="BadRequestException">Если передан неверный ID роли или участника</exception>
         public async Task UpdateAsync(ParticipantDTO newParticipant, CancellationToken cancellationToken)
         {
             if (!_userRoles.Any(r => r == newParticipant.RoleId))
-                throw new InvalidDataException("Invalid role id");
+                throw new BadRequestException("Invalid role id");
 
             var participant = await _context.Participants.FindAsync(newParticipant.Id, cancellationToken);
             if (participant is null)
-                throw new InvalidDataException($"Participant with id {newParticipant.Id} id not found");
+                throw new BadRequestException($"Participant with id {newParticipant.Id} id not found");
 
             participant.RoleId = newParticipant.RoleId;
             await _context.SaveChangesAsync(cancellationToken);

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using ProjectManagementSystemBackend.Models.DTO;
 
 namespace ProjectManagementSystemBackend.Services
@@ -36,12 +37,12 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="taskId">ID задачи</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>Task</returns>
-        /// <exception cref="KeyNotFoundException">Если задача не найдена</exception>
+        /// <exception cref="NotFoundException">Если задача не найдена</exception>
         public async Task DeleteAsync(int taskId, CancellationToken cancellationToken)
         {
             var task = await _context.Tasks.FindAsync(taskId, cancellationToken);
             if (task is null)
-                throw new KeyNotFoundException();
+                throw new NotFoundException();
             
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync(cancellationToken);
@@ -70,10 +71,10 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="userId">ID пользователя-создателя</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>DTO новой задачи</returns>
-        /// <exception cref="KeyNotFoundException">
+        /// <exception cref="NotFoundException">
         /// Если участник проекта не найден
         /// </exception>
-        /// <exception cref="InvalidDataException">
+        /// <exception cref="BadRequestException">
         /// Если указан неверный ответственный
         /// </exception>
         /// <remarks>
@@ -93,10 +94,10 @@ namespace ProjectManagementSystemBackend.Services
                 bs.BaseBoard.Project.Participants.Any(p => p.UserId == userId))
                 .FirstOrDefaultAsync(cancellationToken);
             if (existParticipant is null)
-                throw new KeyNotFoundException("Participant not found");
+                throw new NotFoundException("Participant not found");
             var existResponsiblePerson = await _context.Participants.FindAsync(task.ResponsiblePersonId,cancellationToken);
             if (existResponsiblePerson is null)
-                throw new InvalidDataException("Invalid responsible person id");
+                throw new BadRequestException("Invalid responsible person id");
 
             Models.Task newTask = task.Adapt<Models.Task>(config.Fork(f => f.ForType<TaskDTO, Models.Task>().Ignore("Id")));
             newTask.CreatorId = existParticipant.BaseBoard.Project.Participants
@@ -110,7 +111,7 @@ namespace ProjectManagementSystemBackend.Services
             {
                 await _taskHistoryService.CreateAsync(newTask, userId, cancellationToken);
             }
-            catch (KeyNotFoundException ex) { throw new KeyNotFoundException($"Exception in task history service: '{ex.Message}'"); }
+            catch (NotFoundException ex) { throw new NotFoundException($"Exception in task history service: '{ex.Message}'"); }
             catch (Exception ex) { throw new Exception(ex.Message); }
             return newTask.Adapt<TaskDTO>();
         }
@@ -122,10 +123,10 @@ namespace ProjectManagementSystemBackend.Services
         /// <param name="userId">ID пользователя</param>
         /// <param name="cancellationToken">Токен отмены операции</param>
         /// <returns>Task</returns>
-        /// <exception cref="InvalidDataException">
+        /// <exception cref="BadRequestException">
         /// Если указан неверный статус доски или ответственный
         /// </exception>
-        /// <exception cref="KeyNotFoundException">Если задача не найдена</exception>
+        /// <exception cref="NotFoundException">Если задача не найдена</exception>
         /// <remarks>
         /// При обновлении задачи:
         /// 1. Проверяется валидность статуса доски и ответственного
@@ -137,16 +138,16 @@ namespace ProjectManagementSystemBackend.Services
         {
             var existBoardStauts = await _context.BoardStatuses.FindAsync(updatedTask.BoardStatusId, cancellationToken);
             if (existBoardStauts is null)
-                throw new InvalidDataException("Invalid board status id");
+                throw new BadRequestException("Invalid board status id");
 
             var existResponsiblePerson = await _context.Participants.FindAsync(updatedTask.ResponsiblePersonId, cancellationToken);
             if (existResponsiblePerson is null)
-                throw new InvalidDataException("Invalid responsible person id");
+                throw new BadRequestException("Invalid responsible person id");
 
             var oldTask = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == updatedTask.Id, cancellationToken);
             var task = await _context.Tasks.FindAsync(updatedTask.Id, cancellationToken);
             if (task is null)
-                throw new KeyNotFoundException("Task not found");
+                throw new NotFoundException("Task not found");
             updatedTask.Adapt(task);
             task.LastUpdate = DateTime.UtcNow;
             task.CreatorId = oldTask.CreatorId;
@@ -156,8 +157,8 @@ namespace ProjectManagementSystemBackend.Services
             {
                 await _taskHistoryService.UpdateAsync(oldTask,task, userId, cancellationToken);
             }
-            catch (InvalidDataException ex) { throw new InvalidDataException($"Exception in task history service: '{ex.Message}'"); }
-            catch (KeyNotFoundException ex) { throw new KeyNotFoundException($"Exception in task history service: '{ex.Message}'"); }
+            catch (BadRequestException ex) { throw new BadRequestException($"Exception in task history service: '{ex.Message}'"); }
+            catch (NotFoundException ex) { throw new NotFoundException($"Exception in task history service: '{ex.Message}'"); }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
     }

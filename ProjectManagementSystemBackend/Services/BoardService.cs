@@ -6,6 +6,7 @@ using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models;
 using ProjectManagementSystemBackend.Models.DTO;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using Task = System.Threading.Tasks.Task;
 
 namespace ProjectManagementSystemBackend.Services
@@ -147,24 +148,24 @@ namespace ProjectManagementSystemBackend.Services
         /// 1. Параметры Kanban доски (лимит задач)
         /// 2. Данные базовой доски (название, описание)
         /// </remarks>
-        /// <exception cref="KeyNotFoundException">
+        /// <exception cref="NotFoundException">
         /// Если Kanban доска или базовая доска не найдены
         /// </exception>
-        /// <exception cref="InvalidOperationException">
+        /// <exception cref="ConflictException">
         /// Если ID базовой доски не соответствует доске
         /// </exception>
         public async Task UpdateKanbanBoardAsync(KanbanBoardDTO newKanbanBoard, CancellationToken cancellationToken)
         {
             var kanbanBoard = await _context.KanbanBoards.FindAsync(newKanbanBoard.Id,cancellationToken);
             if (kanbanBoard is null)
-                throw new KeyNotFoundException($"Not found kanban board with {newKanbanBoard.Id} id");
+                throw new NotFoundException($"Not found kanban board with {newKanbanBoard.Id} id");
             if (kanbanBoard.BaseBoardId != newKanbanBoard.BaseBoardId)
-                throw new InvalidOperationException ($"KanbanBoard doesnt have BaseBoard with {newKanbanBoard.BaseBoardId} id");
+                throw new ConflictException ($"KanbanBoard doesnt have BaseBoard with {newKanbanBoard.BaseBoardId} id");
             kanbanBoard.TaskLimit = newKanbanBoard.TaskLimit;
 
             var baseBoard = await _context.BaseBoards.FindAsync(newKanbanBoard.BaseBoardId,cancellationToken);
             if (baseBoard is null)
-                throw new KeyNotFoundException($"Not found base board with {newKanbanBoard.BaseBoardId} id");
+                throw new NotFoundException($"Not found base board with {newKanbanBoard.BaseBoardId} id");
             baseBoard.Name = newKanbanBoard.BaseBoard.Name;
             baseBoard.Description = newKanbanBoard.BaseBoard.Description;
             await _context.SaveChangesAsync(cancellationToken);
@@ -180,24 +181,24 @@ namespace ProjectManagementSystemBackend.Services
         /// 1. Параметры Scrum доски (временной лимит)
         /// 2. Данные базовой доски (название, описание)
         /// </remarks>
-        /// <exception cref="KeyNotFoundException">
+        /// <exception cref="NotFoundException">
         /// Если Scrum доска или базовая доска не найдены
         /// </exception>
-        /// <exception cref="InvalidOperationException">
+        /// <exception cref="ConflictException">
         /// Если ID базовой доски не соответствует доске
         /// </exception>
         public async Task UpdateScrumBoardAsync(ScrumBoardDTO newScrumBoard, CancellationToken cancellationToken)
         {
             var scrumBoard = await _context.ScrumBoards.FindAsync(newScrumBoard.Id,cancellationToken);
             if (scrumBoard is null)
-                throw new KeyNotFoundException($"Not found scrum board with {newScrumBoard.Id} id");
+                throw new NotFoundException($"Not found scrum board with {newScrumBoard.Id} id");
             if (scrumBoard.BaseBoardId != newScrumBoard.BaseBoardId)
-                throw new InvalidOperationException($"KanbanBoard doesnt have BaseBoard with {newScrumBoard.BaseBoardId} id");
+                throw new ConflictException($"KanbanBoard doesnt have BaseBoard with {newScrumBoard.BaseBoardId} id");
             scrumBoard.TimeLimit = newScrumBoard.TimeLimit;
 
             var baseBoard = await _context.BaseBoards.FindAsync(newScrumBoard.BaseBoardId, cancellationToken);
             if (baseBoard is null)
-            throw new KeyNotFoundException($"Not found base board with {newScrumBoard.BaseBoard.Id} id");
+            throw new NotFoundException($"Not found base board with {newScrumBoard.BaseBoard.Id} id");
             baseBoard.Name = newScrumBoard.BaseBoard.Name;
             baseBoard.Description = newScrumBoard.BaseBoard.Description;
             await _context.SaveChangesAsync(cancellationToken);
@@ -212,20 +213,20 @@ namespace ProjectManagementSystemBackend.Services
         /// 1. Базовую доску
         /// 2. Привязанную доску (Kanban или Scrum)
         /// </remarks>
-        /// <exception cref="KeyNotFoundException">
+        /// <exception cref="NotFoundException">
         /// Если базовая доска или связанные доски не найдены
         /// </exception>
         public async Task DeleteAsync(int baseBoardId, CancellationToken cancellationToken)
         {
             var baseBoard = await _context.BaseBoards.FindAsync(baseBoardId,cancellationToken);
             if (baseBoard is null)
-                throw new KeyNotFoundException("Not found base board");
+                throw new NotFoundException("Not found base board");
 
             var scrumBoard = await _context.ScrumBoards.FirstOrDefaultAsync(sb => sb.BaseBoardId == baseBoardId, cancellationToken);
             var kanbanBoard = await _context.KanbanBoards.FirstOrDefaultAsync(cb => cb.BaseBoardId == baseBoardId, cancellationToken);
 
             if (scrumBoard is null && kanbanBoard is null)
-                throw new KeyNotFoundException("Not found scrum and Kanban boards");
+                throw new NotFoundException("Not found scrum and Kanban boards");
 
             _context.BaseBoards.Remove(baseBoard);
             if (scrumBoard is null)

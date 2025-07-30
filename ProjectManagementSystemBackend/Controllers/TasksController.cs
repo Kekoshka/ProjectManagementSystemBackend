@@ -8,6 +8,7 @@ using ProjectManagementSystemBackend.Interfaces;
 using ProjectManagementSystemBackend.Models.DTO;
 using System.Net.WebSockets;
 using System.Security.Claims;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
 
 namespace ProjectManagementSystemBackend.Controllers
@@ -112,8 +113,8 @@ namespace ProjectManagementSystemBackend.Controllers
                 var newTask = await _taskService.PostAsync(task, _userId, cancellationToken);
                 return Ok(newTask);
             }
-            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (BadRequestException ex) { return BadRequest(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
@@ -157,8 +158,8 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _taskService.UpdateAsync(updatedTask, _userId, cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-            catch (InvalidDataException ex) { return BadRequest(ex.Message); }
+            catch (NotFoundException ex) { return NotFound(ex.Message); }
+            catch (BadRequestException ex) { return BadRequest(ex.Message); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 
@@ -190,7 +191,7 @@ namespace ProjectManagementSystemBackend.Controllers
                 await _taskService.DeleteAsync(taskId,cancellationToken);
                 return NoContent();
             }
-            catch (KeyNotFoundException) { return NotFound(); }
+            catch (NotFoundException) { return NotFound(); }
             catch (Exception) { return StatusCode(500, "Internal server error"); }
         }
 

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystemBackend.Context;
 using ProjectManagementSystemBackend.Interfaces;
 using System.Security.Claims;
+using ProjectManagementSystemBackend.Common.CustomExceptions;
 using IAuthorizationService = ProjectManagementSystemBackend.Interfaces.IAuthorizationService;
 
 namespace ProjectManagementSystemBackend.Controllers
